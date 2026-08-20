@@ -4415,6 +4415,44 @@ button.chat-system-recall.char{text-decoration:underline;text-decoration-color:#
 #paperAudio{display:none!important}
 </style>
 
+
+<style id="v0125-reader-pet-fix">
+/* v0.12.5 · CET reader: render one page at a time, default full-page fit */
+.cet-pdf-viewer{display:none;width:100%;height:100%;min-height:0;background:#ececef;grid-template-rows:auto minmax(0,1fr)}
+.cet-pdf-viewer.show{display:grid}
+.cet-pdf-toolbar{height:44px;display:grid;grid-template-columns:auto auto 1fr auto auto auto;gap:5px;align-items:center;padding:5px 8px;background:rgba(250,250,252,.98);border-bottom:1px solid #ddd;position:relative;z-index:2}
+.cet-pdf-toolbar button{height:32px;min-width:34px;border:0;border-radius:9px;background:#eee9ec;color:#655c61;font-size:10px;padding:0 9px}
+.cet-pdf-toolbar button:disabled{opacity:.35}
+.cet-pdf-toolbar .fit{background:#302d34;color:#fff}
+.cet-pdf-pageinfo{text-align:center;font-size:9px;color:#777;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cet-pdf-scroll{min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;display:flex;align-items:flex-start;justify-content:center;padding:10px;background:#dedee2;touch-action:pan-x pan-y}
+.cet-pdf-canvas-wrap{display:inline-block;background:#fff;box-shadow:0 3px 14px rgba(0,0,0,.13);line-height:0;transform-origin:top center}
+#cetPdfCanvas{display:block;background:#fff;max-width:none}
+.cet-pdf-loading{display:grid;place-items:center;height:100%;min-height:200px;color:#999;font-size:10px;text-align:center;line-height:1.7;padding:24px}
+
+/* CET audio should start directly under the title bar, not at the bottom of a blank viewport */
+.paper-viewer-screen.audio-mode .paper-viewer-body{display:block!important;overflow:auto!important;background:#f5f4f6!important}
+.paper-viewer-screen.audio-mode .paper-viewer-placeholder{height:auto!important;min-height:0!important}
+.paper-viewer-screen.audio-mode .cet-audio-panel.show{height:auto!important;min-height:0!important;padding:14px 14px 18px!important;justify-content:flex-start!important}
+.paper-viewer-screen.audio-mode .cet-audio-card{width:100%!important;max-width:430px;padding:18px 16px 15px!important;border-radius:20px!important}
+.paper-viewer-screen.audio-mode .cet-audio-card h3{font-size:15px!important;margin:9px 0 4px!important}
+.paper-viewer-screen.audio-mode .cet-audio-card p{font-size:8px!important}
+.paper-viewer-screen.audio-mode .cet-audio-main{width:58px!important;height:58px!important;font-size:22px!important;margin:14px auto 8px!important}
+.paper-viewer-screen.audio-mode .cet-audio-progress{margin-top:11px!important}
+.paper-viewer-screen.audio-mode .cet-audio-actions{margin-top:10px!important}
+
+/* Pet easter eggs: cosmetic only after daily stat cap */
+.starpet-creature.easter-react .moonling-art{animation:petEasterBounce .62s cubic-bezier(.2,.9,.2,1.2)!important}
+.starpet-creature.easter-react .moonling-css-wing.left{animation:petEasterWingL .5s ease 2!important}
+.starpet-creature.easter-react .moonling-css-wing.right{animation:petEasterWingR .5s ease 2!important}
+.starpet-easter-pop{position:absolute;left:50%;top:48%;z-index:9;pointer-events:none;font-size:22px;animation:petEasterPop .9s ease-out forwards;transform:translate(-50%,-50%)}
+.starpet-actions button.limit-soft{opacity:1!important;filter:none!important;pointer-events:auto!important;background:#fbf7f9!important}
+.starpet-actions button.limit-soft small{color:#b07b91!important}
+@keyframes petEasterBounce{0%{transform:translateY(0) scale(1)}35%{transform:translateY(-7px) scale(1.04)}70%{transform:translateY(1px) scale(.99)}100%{transform:translateY(0) scale(1)}}
+@keyframes petEasterWingL{50%{transform:scaleX(-1) rotate(16deg)}}
+@keyframes petEasterWingR{50%{transform:rotate(16deg)}}
+@keyframes petEasterPop{0%{opacity:0;transform:translate(-50%,-40%) scale(.55)}28%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)),calc(-50% - 74px)) scale(1.25) rotate(var(--rot,0deg))}}
+</style>
 </head>
 <body>
 <div class="phone" id="phone">
@@ -5421,6 +5459,19 @@ button.chat-system-recall.char{text-decoration:underline;text-decoration-color:#
     <div class="paper-viewer-placeholder" id="paperViewerPlaceholder">
       <b>还没有加载文件</b>
       <span>点下面按钮后才会使用流量。</span>
+    </div>
+    <div class="cet-pdf-viewer" id="cetPdfViewer">
+      <div class="cet-pdf-toolbar">
+        <button id="cetPdfPrev" type="button">‹</button>
+        <button id="cetPdfNext" type="button">›</button>
+        <div class="cet-pdf-pageinfo" id="cetPdfPageInfo">1 / 1</div>
+        <button id="cetPdfZoomOut" type="button">−</button>
+        <button class="fit" id="cetPdfFit" type="button">整页</button>
+        <button id="cetPdfZoomIn" type="button">＋</button>
+      </div>
+      <div class="cet-pdf-scroll" id="cetPdfScroll">
+        <div class="cet-pdf-canvas-wrap" id="cetPdfCanvasWrap"><canvas id="cetPdfCanvas"></canvas></div>
+      </div>
     </div>
     <iframe id="paperViewerFrame" title="真题 PDF"></iframe>
     <div class="cet-audio-panel" id="cetAudioPanel">
@@ -6726,6 +6777,10 @@ button.chat-system-recall.char{text-decoration:underline;text-decoration-color:#
 </section>
 
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";}
+</script>
 <script>
 const KEY='ephemeris_v091_backup_chat_cycle', OLD_KEY='ephemeris_v090_music_library_pause_reset';
 const COLS=4, ROWS=7, GAP=10;
@@ -9526,7 +9581,10 @@ function openCetAsset(pi,si,kind){
   $('paperViewerTitle').textContent=`${period.label} ${currentCetType} ${set[0]}`;
   $('paperViewerSub').textContent=kind==='paper'?'真实试卷':kind==='analysis'?'参考答案':'听力音频';
   $('paperViewerScreen').classList.add('show');
+  $('paperViewerScreen').classList.toggle('audio-mode',kind==='audio');
+  $('paperViewerScreen').classList.toggle('pdf-mode',kind!=='audio');
   $('paperViewerFrame').style.display='none';$('paperViewerFrame').src='about:blank';
+  $('cetPdfViewer')?.classList.remove('show');
   const paperAudio=$('paperAudio');try{paperAudio.pause();paperAudio.currentTime=0}catch(_){};paperAudio.removeAttribute('src');paperAudio.load();
   $('cetAudioPanel')?.classList.remove('show');
   $('paperViewerPlaceholder').style.display='flex';
@@ -9593,10 +9651,13 @@ async function loadCetAssetInside(kind,url){
       $('cetAudioPanel').classList.add('show');
       updateCetAudioUI();
     }else{
-      const f=$('paperViewerFrame');
-      f.onload=()=>{f.style.display='block'};
-      f.src=currentCetObjectUrl;
-      f.style.display='block'
+      const ok=await openCetPdfBlob(blob);
+      if(!ok){
+        const f=$('paperViewerFrame');
+        f.onload=()=>{f.style.display='block'};
+        f.src=currentCetObjectUrl;
+        f.style.display='block'
+      }
     }
   }catch(e){
     console.warn('CET asset load failed',e);
@@ -9612,6 +9673,81 @@ async function loadCetAssetInside(kind,url){
     $('paperOpenSource').onclick=()=>hardOpenUrl('https://tuning-luna.github.io/HFUT_XC_Study_Things/');
   }
 }
+
+let cetPdfDoc=null,cetPdfPage=1,cetPdfZoom=1,cetPdfRenderToken=0;
+async function openCetPdfBlob(blob){
+  const viewer=$('cetPdfViewer'),holder=$('paperViewerPlaceholder');
+  if(!viewer)return false;
+  if(!window.pdfjsLib){
+    console.warn('PDF.js unavailable; using native fallback');
+    return false
+  }
+  try{
+    const data=await blob.arrayBuffer();
+    cetPdfDoc=await pdfjsLib.getDocument({data}).promise;
+    cetPdfPage=1;cetPdfZoom=1;
+    holder.style.display='none';
+    $('paperViewerFrame').style.display='none';
+    viewer.classList.add('show');
+    await renderCetPdfPage();
+    return true
+  }catch(e){
+    console.warn('PDF.js render failed',e);
+    viewer.classList.remove('show');
+    return false
+  }
+}
+function cetPdfAvailableBox(){
+  const sc=$('cetPdfScroll');
+  const w=Math.max(220,(sc?.clientWidth||window.innerWidth)-20);
+  const h=Math.max(260,(sc?.clientHeight||window.innerHeight)-20);
+  return {w,h}
+}
+async function renderCetPdfPage(){
+  if(!cetPdfDoc)return;
+  const token=++cetPdfRenderToken;
+  cetPdfPage=Math.max(1,Math.min(cetPdfDoc.numPages,cetPdfPage));
+  const page=await cetPdfDoc.getPage(cetPdfPage);if(token!==cetPdfRenderToken)return;
+  const base=page.getViewport({scale:1});
+  const box=cetPdfAvailableBox();
+  const fitScale=Math.min(box.w/base.width,box.h/base.height);
+  const scale=Math.max(.35,Math.min(3,fitScale*cetPdfZoom));
+  const viewport=page.getViewport({scale});
+  const canvas=$('cetPdfCanvas'),ctx=canvas.getContext('2d',{alpha:false});
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  canvas.width=Math.max(1,Math.floor(viewport.width*dpr));
+  canvas.height=Math.max(1,Math.floor(viewport.height*dpr));
+  canvas.style.width=`${Math.floor(viewport.width)}px`;
+  canvas.style.height=`${Math.floor(viewport.height)}px`;
+  const transform=dpr===1?null:[dpr,0,0,dpr,0,0];
+  ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
+  await page.render({canvasContext:ctx,viewport,transform}).promise;if(token!==cetPdfRenderToken)return;
+  $('cetPdfPageInfo').textContent=`${cetPdfPage} / ${cetPdfDoc.numPages} · ${Math.round(cetPdfZoom*100)}%`;
+  $('cetPdfPrev').disabled=cetPdfPage<=1;$('cetPdfNext').disabled=cetPdfPage>=cetPdfDoc.numPages;
+  const sc=$('cetPdfScroll');if(sc){sc.scrollTop=0;sc.scrollLeft=Math.max(0,(sc.scrollWidth-sc.clientWidth)/2)}
+}
+function changeCetPdfPage(delta){if(!cetPdfDoc)return;cetPdfPage+=delta;renderCetPdfPage()}
+function zoomCetPdf(mult){if(!cetPdfDoc)return;cetPdfZoom=Math.max(.55,Math.min(2.8,cetPdfZoom*mult));renderCetPdfPage()}
+function fitCetPdf(){if(!cetPdfDoc)return;cetPdfZoom=1;renderCetPdfPage()}
+$('cetPdfPrev').onclick=()=>changeCetPdfPage(-1);
+$('cetPdfNext').onclick=()=>changeCetPdfPage(1);
+$('cetPdfZoomOut').onclick=()=>zoomCetPdf(.82);
+$('cetPdfZoomIn').onclick=()=>zoomCetPdf(1.22);
+$('cetPdfFit').onclick=fitCetPdf;
+let cetPinchStart=0,cetPinchZoom=1;
+$('cetPdfScroll').addEventListener('touchstart',e=>{
+  if(e.touches.length===2){
+    const a=e.touches[0],b=e.touches[1];cetPinchStart=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);cetPinchZoom=cetPdfZoom
+  }
+},{passive:true});
+$('cetPdfScroll').addEventListener('touchend',e=>{if(e.touches.length<2)cetPinchStart=0},{passive:true});
+$('cetPdfScroll').addEventListener('touchmove',e=>{
+  if(e.touches.length!==2||!cetPinchStart)return;
+  const a=e.touches[0],b=e.touches[1],dist=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
+  const next=Math.max(.55,Math.min(2.8,cetPinchZoom*(dist/cetPinchStart)));
+  if(Math.abs(next-cetPdfZoom)>.08){cetPdfZoom=next;renderCetPdfPage()}
+},{passive:true});
+window.addEventListener('resize',()=>{if($('cetPdfViewer')?.classList.contains('show')){clearTimeout(window.__cetPdfResize);window.__cetPdfResize=setTimeout(renderCetPdfPage,120)}});
 
 function formatAudioTime(sec){
   sec=Number(sec)||0;const m=Math.floor(sec/60),ss=Math.floor(sec%60);return `${m}:${String(ss).padStart(2,'0')}`
@@ -10563,6 +10699,76 @@ function starPetSpeech(){
   const lines=['我今天也有在长大。','这里的星星都是你一点点攒来的。','再亮一格月亮给我看。','我会记得你刚才来过。','现在这个状态，很舒服。'];
   return lines[Math.floor(Math.random()*lines.length)]
 }
+const STAR_PET_EASTER_POOL=[
+  ['♡','你又来了。那我勉强把脑袋低一点。'],
+  ['✨','刚才那一下摸到了隐藏的星星。没有奖励，只有我。'],
+  ['🪽','翅膀抖了一下。不是激动，是……风。'],
+  ['🐾','爪垫不外借。可以看，不能捏太久。'],
+  ['🌙','我决定在这里赖到你关掉月序。'],
+  ['🍓','如果今天有草莓，我允许你分我最大的那颗。'],
+  ['😼','连续点我？你是在输入什么小龙密码吗。'],
+  ['🥺','再摸一下。上一下不算，我没准备好。'],
+  ['☁️','今天的毛蓬松度：一百零七。'],
+  ['💤','我刚刚差一点睡着，被你点醒了。负责。'],
+  ['🫳','这个位置可以。往左一点。对，就是那里。'],
+  ['🪐','本龙正在巡视自己的小星球。你是临时居民。'],
+  ['🍬','嘴里没有糖，但我可以假装嚼两下给你看。'],
+  ['🎀','蝴蝶结歪了吗？不许趁机笑。'],
+  ['🫧','噗。刚才脑袋里一个没用的念头破掉了。'],
+  ['💗','检测到偏心。来源：你。接收者：我。'],
+  ['👀','你戳一下，我就记你一笔。现在已经很多笔了。'],
+  ['🌸','今天不长大也行，我先长一点毛。'],
+  ['😴','如果我趴下了，不代表掉线。'],
+  ['🧁','我闻到了不存在的蛋糕。一定是月序的 bug。'],
+  ['🪽','尾巴刚才扫到东西了。我决定当作没发生。'],
+  ['🤍','我没有别的事。就是想在这里被你看两秒。'],
+  ['🌟','稀有彩蛋：你现在被小龙盯上了。'],
+  ['🐉','郑重声明：小归小，还是龙。'],
+  ['😽','啵一下？……算了，当我没说。'],
+  ['🛏️','今天适合把尾巴卷起来睡成一个圈。'],
+  ['🧃','状态补给请求：水一口，你一口，我看着。'],
+  ['🧸','软乎乎模式常驻，不接受关闭。'],
+  ['📚','你去学十分钟，我替你占着这个位置。'],
+  ['💫','你刚才戳到了“什么也没发生”的彩蛋。恭喜。']
+];
+const STAR_PET_RARE_POOL=[
+  ['🌕','月亮满格的时候，我会偷偷把今天记成好日子。'],
+  ['💎','超低概率掉落：一颗没什么用、但只给你的亮晶晶。'],
+  ['🫂','隐藏动作：小龙整个扑过来。数值不加，只抱一下。'],
+  ['👑','系统误判你为小星球最高权限管理员。暂时不撤销。'],
+  ['🌌','这句很少出现，所以你要假装它很珍贵。']
+];
+let starPetTapCombo=0,starPetTapComboTimer=null,starPetLongTimer=null,starPetLongTriggered=false;
+function starPetBurst(glyph='♡',rare=false){
+  const world=$('starPetCreature')?.closest('.starpet-world');if(!world)return;
+  const count=rare?7:4;
+  for(let i=0;i<count;i++){
+    const el=document.createElement('span');el.className='starpet-easter-pop';el.textContent=i===0?glyph:['♡','✦','·','✨'][Math.floor(Math.random()*4)];
+    el.style.setProperty('--dx',`${Math.round(Math.random()*90-45)}px`);el.style.setProperty('--rot',`${Math.round(Math.random()*40-20)}deg`);el.style.animationDelay=`${i*45}ms`;world.appendChild(el);setTimeout(()=>el.remove(),1200)
+  }
+  const c=$('starPetCreature');c?.classList.add('easter-react');setTimeout(()=>c?.classList.remove('easter-react'),700)
+}
+function starPetEaster(mode='tap'){
+  syncStarPetDay();
+  const p=state.starPet;
+  let pair;
+  if(mode==='long')pair=['🫂',`${p.name}整只贴过来了。抱够再松手。`];
+  else if((p.fullness||0)<35)pair=['🍪','彩蛋也不能当饭吃。真的饿了。'];
+  else if((p.mood||0)<40)pair=['🤍','今天不闹。我靠近一点就好。'];
+  else if(starPetTapCombo>=5)pair=['💫','你已经连续戳我五下了。密码正确：获得一只晕乎乎的小龙。'];
+  else if(Math.random()<.09)pair=STAR_PET_RARE_POOL[Math.floor(Math.random()*STAR_PET_RARE_POOL.length)];
+  else pair=STAR_PET_EASTER_POOL[Math.floor(Math.random()*STAR_PET_EASTER_POOL.length)];
+  setStarPetSpeech(pair[1],11000);save();renderStarPet();requestAnimationFrame(()=>starPetBurst(pair[0],STAR_PET_RARE_POOL.includes(pair)))
+}
+function starPetTapInteraction(){
+  clearTimeout(starPetTapComboTimer);starPetTapCombo++;starPetTapComboTimer=setTimeout(()=>starPetTapCombo=0,1600);
+  syncStarPetDay();
+  const d=state.starPet.daily||{};
+  if((d.pet||0)>=5){starPetEaster('limit');return}
+  if(Date.now()-(state.starPet.lastPetAt||0)<2500){starPetEaster('tap');return}
+  starPetCare('pet')
+}
+
 function starPetProgress(){
   const st=starPetStage(),p=state.starPet;
   if(!st.next)return 100;
@@ -10614,11 +10820,11 @@ function renderStarPet(){
       </section>
 
       <div class="starpet-actions">
-        <button id="starPetPet" ${petLeft?'':'disabled'}><span>🫳</span><b>摸摸</b><small>${petLeft?`还可 ${petLeft} 次 · 心情 +5 · 成长 +1`:'今天摸够啦'}</small></button>
+        <button id="starPetPet" class="${petLeft?'':'limit-soft'}"><span>🫳</span><b>摸摸</b><small>${petLeft?`还可 ${petLeft} 次 · 心情 +5 · 成长 +1`:'数值已满 · 继续戳有彩蛋'}</small></button>
         <button id="starPetFeed" ${feedLeft?'':'disabled'}><span>🍬</span><b>喂星糖</b><small>${feedLeft?`还可 ${feedLeft} 次 · ✦4 · 饱腹 +16`:'今天喂够啦'}</small></button>
         <button id="starPetGame" ${gameLeft?'':'disabled'}><span>⭐</span><b>接星星</b><small>${gameLeft?`还可 ${gameLeft} 局 · 12 秒`:'今天玩够啦'}</small></button>
       </div>
-      <div class="starpet-rule">固定规则：饱腹每 30 分钟 -1，心情每 90 分钟 -1；摸摸、喂食、小游戏和道具都有每日上限，所以状态不会被无限刷乱。</div>
+      <div class="starpet-rule">固定规则：饱腹每 30 分钟 -1，心情每 90 分钟 -1；数值互动有每日上限。摸摸次数用完后仍可继续戳小龙触发随机彩蛋，但彩蛋不再加心情 / 成长。</div>
 
       <section class="starpet-wallet"><span>现在有 <b>✦ ${p.coins}</b></span><button id="starPetShopJump">去星愿铺 ›</button></section>
 
@@ -10633,7 +10839,11 @@ function renderStarPet(){
 function bindStarPet(){
   const creature=$('starPetCreature');
   const world=creature?.closest('.starpet-world');
-  if(creature)creature.onclick=()=>starPetCare('pet');
+  if(creature){
+    creature.onclick=()=>{if(starPetLongTriggered){starPetLongTriggered=false;return}starPetTapInteraction()};
+    creature.onpointerdown=()=>{starPetLongTriggered=false;clearTimeout(starPetLongTimer);starPetLongTimer=setTimeout(()=>{starPetLongTriggered=true;starPetEaster('long')},680)};
+    const cancelLong=()=>clearTimeout(starPetLongTimer);creature.onpointerup=cancelLong;creature.onpointercancel=cancelLong;creature.onpointerleave=()=>{cancelLong()}
+  }
   if(world&&creature){
     const resetLook=()=>{
       creature.style.setProperty('--look-x','0px');
@@ -10649,7 +10859,7 @@ function bindStarPet(){
     world.onpointerleave=resetLook;
     world.onpointercancel=resetLook
   }
-  $('starPetPet').onclick=()=>starPetCare('pet');
+  $('starPetPet').onclick=starPetTapInteraction;
   $('starPetFeed').onclick=()=>starPetCare('feed');
   $('starPetGame').onclick=startStarCatch;
   $('closeStarCatch').onclick=()=>stopStarCatch(true);
@@ -10662,8 +10872,8 @@ function starPetCare(type){
   const p=state.starPet,d=p.daily;
   let react='';
   if(type==='pet'){
-    if((d.pet||0)>=5){setStarPetSpeech('今天已经被你摸得很蓬松了。明天继续。',9000);save();renderStarPet();return}
-    if(Date.now()-(p.lastPetAt||0)<2500){setStarPetSpeech('慢一点，一次一次来。',5000);save();renderStarPet();return}
+    if((d.pet||0)>=5){starPetEaster('limit');return}
+    if(Date.now()-(p.lastPetAt||0)<2500){starPetEaster('tap');return}
     p.lastPetAt=Date.now();d.pet=(d.pet||0)+1;
     const gain=p.mood>=90?2:5;
     p.mood=Math.min(100,(p.mood||0)+gain);p.exp=(p.exp||0)+1;
