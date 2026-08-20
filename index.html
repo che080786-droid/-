@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://music.yuncan.xyz" crossorigin>
 <link rel="preconnect" href="https://api.injahow.cn" crossorigin>
-<title>月序</title>
+<title>月序 · v0.12.4.1</title>
 <style>
 :root{
   --ink:#2c282a;--muted:#8f858a;--glass:rgba(255,255,255,.62);--glass2:rgba(255,255,255,.82);
@@ -9407,7 +9407,7 @@ function openCetAsset(pi,si,kind){
       </div>`;
   }else{
     $('paperViewerPlaceholder').innerHTML=`
-      <b>${kind==='paper'?'真题试卷':'答案解析'}</b><span>iPhone 有时不支持 iframe PDF，所以给你两种打开方式。</span>
+      <b>${kind==='paper'?'真题试卷':'答案解析'}</b><span>这批真题的源文件会被 GitHub Raw 当作二进制文件返回；月序会先下载，再按 PDF 类型交给 Safari 显示。</span>
       <div class="paper-open-actions">
         <button class="inside" id="paperLoadInside">月序内尝试预览</button>
         <button class="browser" id="paperOpenBrowser">浏览器直接打开</button>
@@ -9415,18 +9415,65 @@ function openCetAsset(pi,si,kind){
       <button class="paper-direct-link" id="paperCopyUrl">复制文件地址</button>`;
   }
   $('paperLoadInside').onclick=()=>loadCetAssetInside(kind,url);
-  $('paperOpenBrowser').onclick=()=>hardOpenUrl(url);
+  $('paperOpenBrowser').onclick=async()=>{
+    const btn=$('paperOpenBrowser');
+    const oldText=btn.textContent;btn.disabled=true;btn.textContent='准备文件…';
+    try{
+      const blob=await fetchCetTypedBlob(kind,url);
+      const objectUrl=URL.createObjectURL(blob);
+      const a=document.createElement('a');a.href=objectUrl;a.target='_blank';a.rel='noopener';
+      document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(objectUrl),120000);
+    }catch(e){
+      toast('题源连接失败，先检查 GitHub Raw 是否能访问');
+    }finally{btn.disabled=false;btn.textContent=oldText}
+  };
   if($('paperCopyUrl'))$('paperCopyUrl').onclick=async()=>{
     try{await navigator.clipboard.writeText(url);toast('文件地址已复制')}catch(_){prompt('复制这个地址',url)}
   }
 }
 
-function loadCetAssetInside(kind,url){
-  $('paperViewerPlaceholder').style.display='none';
-  if(kind==='audio'){
-    const a=$('paperAudio');a.src=url;a.style.display='block';a.load();a.play().catch(()=>{})
-  }else{
-    const f=$('paperViewerFrame');f.src=url;f.style.display='block'
+let currentCetObjectUrl='';
+function clearCetObjectUrl(){
+  if(currentCetObjectUrl){try{URL.revokeObjectURL(currentCetObjectUrl)}catch(_){ }currentCetObjectUrl=''}
+}
+async function fetchCetTypedBlob(kind,url){
+  const r=await fetch(url,{mode:'cors',cache:'force-cache'});
+  if(!r.ok)throw new Error(`HTTP ${r.status}`);
+  const buf=await r.arrayBuffer();
+  if(!buf.byteLength)throw new Error('文件为空');
+  const mime=kind==='audio'?'audio/mpeg':'application/pdf';
+  return new Blob([buf],{type:mime})
+}
+async function loadCetAssetInside(kind,url){
+  const holder=$('paperViewerPlaceholder');
+  holder.style.display='flex';
+  holder.innerHTML=`<b>正在加载${kind==='audio'?'听力':'真题'}…</b><span>第一次需要从题源下载，加载完成后才显示。</span>`;
+  clearCetObjectUrl();
+  try{
+    const blob=await fetchCetTypedBlob(kind,url);
+    currentCetObjectUrl=URL.createObjectURL(blob);
+    holder.style.display='none';
+    if(kind==='audio'){
+      const a=$('paperAudio');a.src=currentCetObjectUrl;a.style.display='block';a.load();a.play().catch(()=>{})
+    }else{
+      const f=$('paperViewerFrame');
+      f.onload=()=>{f.style.display='block'};
+      f.src=currentCetObjectUrl;
+      f.style.display='block'
+    }
+  }catch(e){
+    console.warn('CET asset load failed',e);
+    holder.style.display='flex';
+    holder.innerHTML=`
+      <b>这份真题没能加载</b>
+      <span>题源连接失败或当前网络拦截了 GitHub Raw。不是 PDF 阅读器白屏。</span>
+      <div class="paper-open-actions">
+        <button class="inside" id="paperRetryInside">再试一次</button>
+        <button class="browser" id="paperOpenSource">打开题源主页</button>
+      </div>`;
+    $('paperRetryInside').onclick=()=>loadCetAssetInside(kind,url);
+    $('paperOpenSource').onclick=()=>hardOpenUrl('https://tuning-luna.github.io/HFUT_XC_Study_Things/');
   }
 }
 document.querySelectorAll('[data-cet-library]').forEach(b=>b.onclick=()=>{
