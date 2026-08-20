@@ -4341,6 +4341,80 @@ button.chat-system-recall.char{text-decoration:underline;text-decoration-color:#
 @keyframes dragonWingR{from{transform:rotate(-7deg)}to{transform:rotate(3deg)}}
 
 </style>
+
+<style id="cet-pdf-fullscreen-fix">
+/* v0.12.4.2 · CET PDF viewer sizing fix
+   Previous CSS accidentally used // comments, so Safari fell back to the
+   iframe default 300×150 box. Keep the title bar, fill all remaining space. */
+.paper-viewer-screen{overflow:hidden;}
+.paper-viewer-body{
+  width:100%;
+  height:calc(100% - 54px - env(safe-area-inset-top));
+  min-width:0;
+  min-height:0;
+  display:grid;
+  grid-template-rows:minmax(0,1fr) auto;
+  background:#fff;
+  overflow:hidden;
+}
+#paperViewerFrame{
+  display:none;
+  width:100% !important;
+  height:100% !important;
+  min-width:0;
+  min-height:0;
+  border:0 !important;
+  margin:0;
+  padding:0;
+  background:#fff;
+}
+#paperAudio{
+  display:none;
+  width:100%;
+  box-sizing:border-box;
+  padding:8px;
+  background:#f5f5f7;
+}
+.paper-viewer-placeholder{width:100%;height:100%;}
+</style>
+
+<style id="audio-control-v1243">
+/* v0.12.4.3 · Listening playback controls */
+.listen-stage .listen-control-row{
+  display:flex;align-items:center;justify-content:center;gap:12px;margin:4px 0 2px
+}
+.eng-content-card .listen-stage .listen-main{
+  width:68px;height:68px;border:0;border-radius:50%;background:#302d34;color:#fff;
+  font-size:24px;display:grid;place-items:center
+}
+.eng-content-card .listen-stage .listen-stop{
+  width:42px;height:42px;border:0;border-radius:50%;background:#eee9ec;color:#776a71;
+  font-size:15px;display:grid;place-items:center
+}
+#engPlayStatus{min-height:14px}
+.cet-audio-panel{
+  display:none;width:100%;height:100%;padding:22px 18px 26px;background:#f5f4f6;
+  flex-direction:column;align-items:center;justify-content:center;min-height:0
+}
+.cet-audio-panel.show{display:flex}
+.cet-audio-card{
+  width:min(430px,100%);background:#fff;border-radius:24px;padding:24px 18px 18px;
+  box-shadow:0 8px 26px rgba(50,45,48,.06);text-align:center
+}
+.cet-audio-badge{display:inline-flex;border-radius:999px;background:#f2e8ed;color:#956a7d;padding:5px 8px;font-size:8px}
+.cet-audio-card h3{font-size:17px;margin:12px 0 5px}.cet-audio-card p{font-size:9px;color:#999;line-height:1.6;margin:0}
+.cet-audio-main{
+  width:76px;height:76px;border:0;border-radius:50%;background:#302d34;color:#fff;
+  font-size:26px;display:grid;place-items:center;margin:24px auto 12px
+}
+.cet-audio-status{font-size:9px;color:#8e858a;min-height:15px}
+.cet-audio-progress{width:100%;margin-top:18px;accent-color:#d995ae}
+.cet-audio-time{display:flex;justify-content:space-between;font-size:8px;color:#aaa;margin-top:4px;font-variant-numeric:tabular-nums}
+.cet-audio-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:15px}
+.cet-audio-actions button{border:0;border-radius:12px;background:#f2eef0;color:#756a70;padding:10px;font-size:9px}
+#paperAudio{display:none!important}
+</style>
+
 </head>
 <body>
 <div class="phone" id="phone">
@@ -5349,7 +5423,22 @@ button.chat-system-recall.char{text-decoration:underline;text-decoration-color:#
       <span>点下面按钮后才会使用流量。</span>
     </div>
     <iframe id="paperViewerFrame" title="真题 PDF"></iframe>
-    <audio id="paperAudio" controls preload="none"></audio>
+    <div class="cet-audio-panel" id="cetAudioPanel">
+      <div class="cet-audio-card">
+        <span class="cet-audio-badge">CET LISTENING</span>
+        <h3 id="cetAudioTitle">听力音频</h3>
+        <p>播放后可随时暂停 / 继续；不会再点开就自己往下播。</p>
+        <button class="cet-audio-main" id="cetAudioToggle" type="button">▶</button>
+        <div class="cet-audio-status" id="cetAudioStatus">音频已准备好</div>
+        <input class="cet-audio-progress" id="cetAudioProgress" type="range" min="0" max="1000" value="0" aria-label="听力进度">
+        <div class="cet-audio-time"><span id="cetAudioCurrent">0:00</span><span id="cetAudioDuration">0:00</span></div>
+        <div class="cet-audio-actions">
+          <button id="cetAudioBack5" type="button">↶ 5 秒</button>
+          <button id="cetAudioForward5" type="button">5 秒 ↷</button>
+        </div>
+      </div>
+    </div>
+    <audio id="paperAudio" preload="metadata" playsinline></audio>
   </div>
 </section>
 
@@ -8225,6 +8314,9 @@ function openScreen(id){
 document.querySelectorAll('.back').forEach(b=>b.onclick=()=>{
   const parent=b.closest('.screen,.subscreen');
   const isMain=parent?.classList.contains('screen');
+  if(parent?.id==='englishSkillScreen')stopNaturalEnglish();
+  if(parent?.id==='paperViewerScreen')stopCetAudioPlayback(true);
+  parent?.querySelectorAll?.('audio').forEach(a=>{try{a.pause()}catch(_){}});
   parent?.classList.remove('active','show');
   if(isMain)stopUsage()
 });
@@ -8330,20 +8422,55 @@ function updateEphemVoiceUI(){
   if($('vocabVoiceRate'))$('vocabVoiceRate').value=String(ephemSpeechRate);
   if($('vocabVoiceStatus'))$('vocabVoiceStatus').textContent=`当前声线：${ephemVoiceLabel()}`
 }
+let ephemSpeechText='';
+let ephemSpeechPlaying=false;
+let ephemSpeechPaused=false;
+let ephemSpeechUtterance=null;
+
+function syncEphemSpeechUI(){
+  const active=ephemSpeechPlaying||ephemSpeechPaused;
+  const paused=ephemSpeechPaused;
+  const main=$('engPlayAudio'),top=$('engSkillSpeak'),status=$('engPlayStatus');
+  if(main){main.textContent=active&&!paused?'Ⅱ':'▶';main.setAttribute('aria-label',active&&!paused?'暂停':'播放或继续')}
+  if(top&&engSkill==='listening'){top.textContent=active&&!paused?'Ⅱ':'🔊';top.setAttribute('aria-label',active&&!paused?'暂停听力':'播放或继续听力')}
+  if(status){
+    status.textContent=active?(paused?'已暂停 · 点 ▶ 继续':'正在播放 · 点 Ⅱ 暂停'):'点 ▶ 开始 · 播放中可随时暂停'
+  }
+}
+function stopNaturalEnglish(){
+  if('speechSynthesis' in window){try{window.speechSynthesis.cancel()}catch(_){}}
+  ephemSpeechText='';ephemSpeechPlaying=false;ephemSpeechPaused=false;ephemSpeechUtterance=null;
+  syncEphemSpeechUI()
+}
 function speakNaturalEnglish(textToSpeak,rate=ephemSpeechRate,retry=true){
   if(!('speechSynthesis' in window)){toast('当前浏览器不支持系统英文朗读');return false}
   const clean=String(textToSpeak||'').trim();if(!clean)return false;
   const synth=window.speechSynthesis;
+
+  // 同一段正在播：再次点击就是暂停；暂停后再次点击就是继续。
+  if(ephemSpeechText===clean&&(ephemSpeechPlaying||ephemSpeechPaused)){
+    try{
+      if(ephemSpeechPaused||synth.paused){synth.resume();ephemSpeechPaused=false;ephemSpeechPlaying=true}
+      else{synth.pause();ephemSpeechPaused=true;ephemSpeechPlaying=false}
+      syncEphemSpeechUI();return true
+    }catch(_){stopNaturalEnglish()}
+  }
+
   try{synth.cancel();synth.resume()}catch(_){}
-  const u=new SpeechSynthesisUtterance(clean);
+  ephemSpeechText=clean;ephemSpeechPlaying=false;ephemSpeechPaused=false;
+  const u=new SpeechSynthesisUtterance(clean);ephemSpeechUtterance=u;
   u.lang=ephemSpeechAccent;u.rate=rate;u.pitch=1;u.volume=1;
   const voice=ephemPreferredVoice||refreshEphemVoice();if(voice)u.voice=voice;
-  u.onstart=()=>updateEphemVoiceUI();
+  u.onstart=()=>{ephemSpeechPlaying=true;ephemSpeechPaused=false;updateEphemVoiceUI();syncEphemSpeechUI()};
+  u.onpause=()=>{ephemSpeechPlaying=false;ephemSpeechPaused=true;syncEphemSpeechUI()};
+  u.onresume=()=>{ephemSpeechPlaying=true;ephemSpeechPaused=false;syncEphemSpeechUI()};
+  u.onend=()=>{if(ephemSpeechUtterance===u){ephemSpeechText='';ephemSpeechPlaying=false;ephemSpeechPaused=false;ephemSpeechUtterance=null;syncEphemSpeechUI()}};
   u.onerror=()=>{
+    if(ephemSpeechUtterance===u){ephemSpeechText='';ephemSpeechPlaying=false;ephemSpeechPaused=false;ephemSpeechUtterance=null;syncEphemSpeechUI()}
     if(retry){ephemPreferredVoice=null;setTimeout(()=>speakNaturalEnglish(clean,rate,false),160)}
     else toast('这个声线没播放出来，去 CET 小屋设置里点“重新选声线”')
   };
-  synth.speak(u);return true
+  synth.speak(u);syncEphemSpeechUI();return true
 }
 function saveEphemVoiceSettings(){
   ephemSpeechAccent=$('vocabVoiceAccent')?.value||ephemSpeechAccent;
@@ -8647,6 +8774,7 @@ $('practiceYanjingBtn').onclick=()=>openYanjingChat();
 $('engOpenBBC').onclick=()=>launchURL('https://www.bbc.co.uk/learningenglish/');
 
 function renderEnglishSkill(){
+  stopNaturalEnglish();
   const items=engItems(engSkill),item=items[engIndex%items.length];
   if(!item)return;
   state.englishLab.indices[engSkill]=engIndex%items.length;save();
@@ -8679,8 +8807,10 @@ function renderEnglishSkill(){
   $('engVoiceInput').textContent='🎙 录语音';
 
   if(engSkill==='listening'){
-    $('engSkillContent').innerHTML=`<div class="listen-stage"><button id="engPlayAudio">▶</button><b>先别看字幕</b><span>自然声线优先 · 可以重复听</span></div>`;
-    $('engPlayAudio').onclick=()=>speakEnglishLab(item.script)
+    $('engSkillContent').innerHTML=`<div class="listen-stage"><div class="listen-control-row"><button class="listen-main" id="engPlayAudio" type="button">▶</button><button class="listen-stop" id="engStopAudio" type="button">■</button></div><b>先别看字幕</b><span id="engPlayStatus">点 ▶ 开始 · 播放中可随时暂停</span></div>`;
+    $('engPlayAudio').onclick=()=>speakEnglishLab(item.script);
+    $('engStopAudio').onclick=()=>stopNaturalEnglish();
+    syncEphemSpeechUI()
   }else if(engSkill==='reading'){
     $('engSkillContent').innerHTML=`<div class="reading-text">${esc(item.text||'')}</div>`
   }else{
@@ -8703,6 +8833,7 @@ $('engSkillDraft').oninput=e=>{
   state.englishLab.drafts[key]=e.target.value;save()
 };
 async function moveEnglishSkill(delta){
+  stopNaturalEnglish();
   const n=engItems(engSkill).length;if(!n)return;
   if(delta>0&&engIndex>=n-1){
     await refreshEnglishPool(engSkill);
@@ -8725,6 +8856,7 @@ $('engRefreshRoute').onclick=()=>{
 $('engRefreshPractice').onclick=()=>refreshEnglishPool('');
 
 async function completeEnglishSkill(){
+  stopNaturalEnglish();
   const itemsBefore=engItems(engSkill);
   if(!itemsBefore.length)return;
   const currentIndex=Math.max(0,Math.min(itemsBefore.length-1,engIndex));
@@ -9395,7 +9527,8 @@ function openCetAsset(pi,si,kind){
   $('paperViewerSub').textContent=kind==='paper'?'真实试卷':kind==='analysis'?'参考答案':'听力音频';
   $('paperViewerScreen').classList.add('show');
   $('paperViewerFrame').style.display='none';$('paperViewerFrame').src='about:blank';
-  $('paperAudio').style.display='none';$('paperAudio').removeAttribute('src');
+  const paperAudio=$('paperAudio');try{paperAudio.pause();paperAudio.currentTime=0}catch(_){};paperAudio.removeAttribute('src');paperAudio.load();
+  $('cetAudioPanel')?.classList.remove('show');
   $('paperViewerPlaceholder').style.display='flex';
 
   if(kind==='audio'){
@@ -9455,7 +9588,10 @@ async function loadCetAssetInside(kind,url){
     currentCetObjectUrl=URL.createObjectURL(blob);
     holder.style.display='none';
     if(kind==='audio'){
-      const a=$('paperAudio');a.src=currentCetObjectUrl;a.style.display='block';a.load();a.play().catch(()=>{})
+      const a=$('paperAudio');a.src=currentCetObjectUrl;a.load();
+      $('cetAudioTitle').textContent=`${currentPaperContext?.period||''} ${currentPaperContext?.type||''} ${currentPaperContext?.set||''}`.trim();
+      $('cetAudioPanel').classList.add('show');
+      updateCetAudioUI();
     }else{
       const f=$('paperViewerFrame');
       f.onload=()=>{f.style.display='block'};
@@ -9476,6 +9612,39 @@ async function loadCetAssetInside(kind,url){
     $('paperOpenSource').onclick=()=>hardOpenUrl('https://tuning-luna.github.io/HFUT_XC_Study_Things/');
   }
 }
+
+function formatAudioTime(sec){
+  sec=Number(sec)||0;const m=Math.floor(sec/60),ss=Math.floor(sec%60);return `${m}:${String(ss).padStart(2,'0')}`
+}
+function updateCetAudioUI(){
+  const a=$('paperAudio');if(!a)return;
+  const has=!!a.src&&a.src!=='about:blank';
+  const playing=has&&!a.paused&&!a.ended;
+  if($('cetAudioToggle'))$('cetAudioToggle').textContent=playing?'Ⅱ':'▶';
+  if($('cetAudioStatus'))$('cetAudioStatus').textContent=!has?'还没有加载音频':playing?'正在播放 · 点 Ⅱ 暂停':a.currentTime>0&&!a.ended?'已暂停 · 点 ▶ 继续':a.ended?'播放结束 · 点 ▶ 重听':'音频已准备好 · 点 ▶ 开始';
+  if($('cetAudioCurrent'))$('cetAudioCurrent').textContent=formatAudioTime(a.currentTime);
+  if($('cetAudioDuration'))$('cetAudioDuration').textContent=formatAudioTime(Number.isFinite(a.duration)?a.duration:0);
+  if($('cetAudioProgress')){
+    const d=Number.isFinite(a.duration)&&a.duration>0?a.duration:0;
+    $('cetAudioProgress').value=d?String(Math.round((a.currentTime/d)*1000)):'0'
+  }
+}
+function stopCetAudioPlayback(reset=false){
+  const a=$('paperAudio');if(!a)return;try{a.pause();if(reset)a.currentTime=0}catch(_){}updateCetAudioUI()
+}
+$('cetAudioToggle').onclick=async()=>{
+  const a=$('paperAudio');if(!a.src){toast('先加载听力音频');return}
+  try{
+    if(a.ended)a.currentTime=0;
+    if(a.paused)await a.play();else a.pause()
+  }catch(_){toast('这段听力暂时播放失败')}
+  updateCetAudioUI()
+};
+$('cetAudioBack5').onclick=()=>{const a=$('paperAudio');a.currentTime=Math.max(0,(a.currentTime||0)-5);updateCetAudioUI()};
+$('cetAudioForward5').onclick=()=>{const a=$('paperAudio');const d=Number.isFinite(a.duration)?a.duration:Infinity;a.currentTime=Math.min(d,(a.currentTime||0)+5);updateCetAudioUI()};
+$('cetAudioProgress').oninput=e=>{const a=$('paperAudio');if(Number.isFinite(a.duration)&&a.duration>0){a.currentTime=(Number(e.target.value)/1000)*a.duration;updateCetAudioUI()}};
+for(const ev of ['loadedmetadata','timeupdate','play','pause','ended'])$('paperAudio').addEventListener(ev,updateCetAudioUI);
+
 document.querySelectorAll('[data-cet-library]').forEach(b=>b.onclick=()=>{
   renderCetLibrary(b.dataset.cetLibrary);$('cetLibraryScreen').classList.add('show')
 });
@@ -15004,6 +15173,7 @@ function updateVocabHeader(){
   $('vocabHeaderSub').textContent=count>100?`${learningBookLabel(key)} · ${count} 词`:`${learningBookLabel(key)} · 核心词模式`
 }
 function showVocabView(view){
+  stopNaturalEnglish();
   document.querySelectorAll('[data-vocab-view]').forEach(v=>v.classList.toggle('active',v.dataset.vocabView===view));
   document.querySelectorAll('[data-vocab-nav]').forEach(b=>b.classList.toggle('active',b.dataset.vocabNav===view));
   updateVocabHeader();
