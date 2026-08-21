@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://music.yuncan.xyz" crossorigin>
 <link rel="preconnect" href="https://api.injahow.cn" crossorigin>
-<title>月序 · v0.13.12</title>
+<title>月序 · v0.13.14</title>
 <style>
 :root{
   --ink:#2c282a;--muted:#8f858a;--glass:rgba(255,255,255,.62);--glass2:rgba(255,255,255,.82);
@@ -4606,7 +4606,7 @@ button.chat-system-recall.char{text-decoration:underline;text-decoration-color:#
     <div class="screen-body" style="padding:0;height:calc(100% - 54px - env(safe-area-inset-top))"><div class="wechat-shell">
       <div class="wx-search-wrap"><input class="wx-search-input" id="wxSearchInput" placeholder="⌕ 搜索聊天 / 联系人"></div><div class="wx-pages">
       <section class="wx-page active" id="wxChats"><div class="chat-list" id="wxChatList">
-        <button class="chat-row" id="openYanjing"><div class="wx-avatar avatar-click" id="chatListCharAvatar">晏</div><div class="chat-copy"><b>晏景</b><p id="chatPreview">四件事都在。先做第一件。</p></div><div class="chat-time">置顶</div></button>
+        <button class="chat-row" id="openYanjing"><div class="wx-avatar avatar-click" id="chatListCharAvatar">晏</div><div class="chat-copy"><b>晏景</b><p id="chatPreview"></p></div><div class="chat-time">置顶</div></button>
       </div></section>
       <section class="wx-page" id="wxContacts"><div class="simple-list">
         <button class="simple-row btn-row" data-wx-util="friends"><div class="simple-icon">＋</div><span>新的朋友</span><span class="row-tail">›</span></button>
@@ -7169,16 +7169,7 @@ function normalizePage2Layout(){
   });
   state.page2Layout=clean
 }
-normalizePage2Layout();state.diaries ||= [];state.api ||= {endpoint:'',model:'',transcribeModel:'whisper-1',useWorldbook:true,useMemory:true};state.api.transcribeModel ||= 'whisper-1';state.api.features ||= {wechat:false,together:false,practice:false,cet:false,reports:false,proactive:false,moments:false,supervisor:false};['wechat','together','practice','cet','reports','proactive','moments','supervisor'].forEach(k=>{if(typeof state.api.features[k]!=='boolean')state.api.features[k]=false});state.homePage ||= 0;state.chat ||= [];
-if(!state.chat.some(m=>m?.id==='welcome-yanjing')){
-  state.chat.unshift({
-    id:'welcome-yanjing',
-    role:'assistant',
-    type:'text',
-    text:'四件事都在。先做第一件，别站在桌面发呆。',
-    time:Date.now()-60000
-  })
-}state.moments ||= [{author:'晏景',kind:'ai',text:'今天第一格还没亮。我先不催第二遍。',time:'刚刚'}];state.worldbook ||= [{id:'core',title:'晏景 · 核心人设',keywords:[],enabled:true,content:'成熟年上，理性、克制，有一点管束感。学习时会把任务切小，不羞辱、不打击。'},{id:'relation',title:'关系设定',keywords:[],enabled:true,content:'晏景是月月在月序世界里的长期陪伴者，能读取学习状态、长期记忆和世界书。'}];state.wechat ||= {meAvatar:'',charAvatar:'',pokeText:'的肩膀',momentsCover:''};
+normalizePage2Layout();state.diaries ||= [];state.api ||= {endpoint:'',model:'',transcribeModel:'whisper-1',useWorldbook:true,useMemory:true};state.api.transcribeModel ||= 'whisper-1';state.api.features ||= {wechat:false,together:false,practice:false,cet:false,reports:false,proactive:false,moments:false,supervisor:false};['wechat','together','practice','cet','reports','proactive','moments','supervisor'].forEach(k=>{if(typeof state.api.features[k]!=='boolean')state.api.features[k]=false});state.homePage ||= 0;state.chat ||= [];state.moments ||= [{author:'晏景',kind:'ai',text:'今天第一格还没亮。我先不催第二遍。',time:'刚刚'}];state.worldbook ||= [{id:'core',title:'晏景 · 核心人设',keywords:[],enabled:true,content:'成熟年上，理性、克制，有一点管束感。学习时会把任务切小，不羞辱、不打击。'},{id:'relation',title:'关系设定',keywords:[],enabled:true,content:'晏景是月月在月序世界里的长期陪伴者，能读取学习状态、长期记忆和世界书。'}];state.wechat ||= {meAvatar:'',charAvatar:'',pokeText:'的肩膀',momentsCover:''};
 state.wechat.pokeText ||= '的肩膀';
 state.wechat.contacts ||= [];
 state.wechat.contacts = Array.isArray(state.wechat.contacts) ? state.wechat.contacts : [];
@@ -11358,15 +11349,11 @@ async function charApiText(prompt,feature='wechat',charId='yanjing'){
 }
 async function generateProactiveMessage(force=false){
   if(!force&&!behaviorAllowed('message'))return;
-  const local=[
-    '跑哪儿去了？回来让我看一眼今天的进度。',
-    '刚才那首歌还在放。你人倒是不见了。',
-    '今天有没有好好吃东西？别只顾着盯屏幕。',
-    '月亮还没圆。第一件做完了再来跟我撒娇。',
-    '想你了，所以来敲一下。没有别的事。'
-  ];
   let body=await charApiText('现在由你主动给月月发一条微信。没有用户提问，是你自己想起她了。只写一条自然的短消息，不超过35字。','proactive');
-  if(!body)body=local[Math.floor(Math.random()*local.length)];
+  if(!body){
+    if(force)toast('主动消息 API 还没有返回内容');
+    return
+  }
   state.chat.push({id:'auto'+Date.now(),role:'assistant',text:body,auto:true,time:Date.now()});
   if(!force)recordBehavior('message'); else {save();renderCharBehaviorSettings()}
   renderChat();
@@ -11793,7 +11780,7 @@ function bindWxMessageLongPress(){
 function renderChat(){
  $('messageList').innerHTML=`<div class="time-mark">今天</div>`+state.chat.map(renderMessage).join('');
  $('messageList').scrollTop=$('messageList').scrollHeight;
- const last=[...state.chat].reverse().find(x=>x.text||x.note);if(last)$('chatPreview').textContent=last.text||last.note||'新消息';
+ const last=[...state.chat].reverse().find(x=>x.text||x.note);$('chatPreview').textContent=last?(last.text||last.note||''):'';
  bindChatAvatarActions();bindVoiceBubbles();bindWxMessageLongPress();
  document.querySelectorAll('[data-recalled-view]').forEach(b=>b.onclick=()=>{
    const m=state.chat[+b.dataset.recalledView];
@@ -11937,13 +11924,11 @@ async function requestCharBatchReply(){
    'wechat'
  );
  if(!reply){
-   const hasVoice=pending.some(m=>m.type==='voice');
-   const last=pending.slice().reverse().find(m=>m.text)?.text||'';
-   reply=hasVoice&&!pending.some(m=>m.type==='voice'&&m.transcript)
-     ?'语音我收到了。\n这一条暂时没转出文字，我不装作听懂。\n你要是补一句文字，我再接着回你。'
-     :last
-       ?`都看见了。\n${last.length<20?'我在，你继续说。':'我先把你刚才这一组一起接住。'}`
-       :'都收到了。\n你慢慢发，我等你发完再一起回。'
+   btn.dataset.busy='0';
+   $('charReplyLabel').textContent='晏';
+   updateCharReplyButton();
+   toast('晏景还没有接通微信 API');
+   return
  }
  const replyPlan=planCharQuote(reply,pending);
  pending.forEach(m=>m.replyPending=false);
@@ -18576,6 +18561,226 @@ html,body{width:100%!important;height:100%!important;overflow:hidden!important;m
   }
 
   console.info('[Ephemeris v0.13.12] pet back fixed / 100 touch lines / richer shop / page-2 labels centered');
+})();
+</script>
+
+
+<!-- ===== Ephemeris v0.13.13 · 第二页标签精确居中 / 备忘录完成横排 ===== -->
+<style id="ephem-v01313-alignment-fix">
+/* 第二页 App：以整个格子中心为基准，图标和名称都严格居中。
+   不改字号、不改图标尺寸、不改格子尺寸。 */
+.second-page-grid .second-app{
+  position:relative!important;
+  display:grid!important;
+  grid-template-rows:58px 18px!important;
+  align-content:center!important;
+  justify-items:center!important;
+  align-items:center!important;
+  justify-content:stretch!important;
+  gap:7px!important;
+  padding:0!important;
+  text-align:center!important;
+}
+.second-page-grid .second-app .app-icon{
+  grid-row:1!important;
+  justify-self:center!important;
+  align-self:center!important;
+  margin:0!important;
+}
+.second-page-grid .second-app .app-label{
+  grid-row:2!important;
+  justify-self:stretch!important;
+  align-self:start!important;
+  width:100%!important;
+  max-width:100%!important;
+  margin:0!important;
+  padding:0!important;
+  text-align:center!important;
+  line-height:1.15!important;
+}
+
+/* 备忘录文件夹页：两侧列等宽，右上角“完成”保持一行。 */
+.notes-root-top{
+  grid-template-columns:56px minmax(0,1fr) 56px!important;
+}
+.notes-root-top .notes-edit-folders{
+  width:56px!important;
+  max-width:56px!important;
+  white-space:nowrap!important;
+  word-break:keep-all!important;
+  justify-self:end!important;
+  padding:0!important;
+  text-align:center!important;
+}
+</style>
+
+
+<!-- ===== Ephemeris v0.13.14 · 空白 Char / 顶栏状态 / 公众号订阅中心 ===== -->
+<style id="ephem-v01314-chat-account-style">
+/* Char 名称下面的状态下移一点，但严格收在顶部聊天栏内部。 */
+#yanjingChat .chat-name{
+  transform:translateY(3px)!important;
+  max-height:38px!important;
+  padding-top:1px!important;
+  padding-bottom:1px!important;
+}
+#yanjingChat .chat-name::after{
+  margin-top:3px!important;
+  line-height:1!important;
+  max-height:10px!important;
+}
+
+/* 公众号改成“订阅设置 + 报告归档”，不再做外链入口。 */
+.account-sub-card{
+  background:#fff;border-radius:16px;overflow:hidden;margin-top:10px
+}
+.account-sub-row{
+  min-height:58px;padding:11px 13px;border-bottom:1px solid #eee;
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center
+}
+.account-sub-row:last-child{border-bottom:0}
+.account-sub-row b{display:block;font-size:11px}
+.account-sub-row span{display:block;font-size:8px;color:#999;line-height:1.5;margin-top:4px}
+.account-report-open{
+  width:100%;border:0;border-radius:14px;background:#302d34;color:#fff;
+  padding:12px;margin-top:10px;font-size:10px;font-weight:750
+}
+.account-report-title{
+  display:flex;justify-content:space-between;align-items:end;
+  margin:16px 3px 8px
+}
+.account-report-title b{font-size:11px}
+.account-report-title span{font-size:8px;color:#aaa}
+.account-history{
+  background:#fff;border-radius:16px;overflow:hidden
+}
+.account-history-row{
+  padding:11px 13px;border-bottom:1px solid #eee;
+  display:grid;grid-template-columns:1fr auto;gap:10px
+}
+.account-history-row:last-child{border-bottom:0}
+.account-history-row b{display:block;font-size:10px}
+.account-history-row span{display:block;font-size:8px;color:#999;margin-top:4px}
+.account-history-row time{font-size:8px;color:#aaa;white-space:nowrap}
+.account-empty{
+  padding:22px 14px;text-align:center;color:#aaa;font-size:9px;line-height:1.7
+}
+.account-explain{
+  margin-top:10px;border-radius:13px;background:#eee9ec;
+  color:#81767c;padding:10px 11px;font-size:8px;line-height:1.65
+}
+</style>
+
+<script id="ephem-v01314-chat-account-script">
+(()=>{
+  if(window.__ephem1314Installed)return;
+  window.__ephem1314Installed=true;
+
+  /* 旧版本已经写进 localStorage 的两类“演示消息”也清掉一次。
+     用户自己发的消息、API 真消息、红包/报告等一律保留。 */
+  const demoTexts=new Set([
+    '四件事都在。先做第一件，别站在桌面发呆。',
+    '跑哪儿去了？回来让我看一眼今天的进度。',
+    '刚才那首歌还在放。你人倒是不见了。',
+    '今天有没有好好吃东西？别只顾着盯屏幕。',
+    '月亮还没圆。第一件做完了再来跟我撒娇。',
+    '想你了，所以来敲一下。没有别的事。'
+  ]);
+  const migrationKey='ephem-0.13.14-chat-clean';
+  if(localStorage.getItem(migrationKey)!=='1'){
+    state.chat=(state.chat||[]).filter(m=>m?.id!=='welcome-yanjing'&&!demoTexts.has(String(m?.text||'')));
+    localStorage.setItem(migrationKey,'1');
+    try{save(false)}catch(_e){}
+  }
+
+  function renderAccountCenter1314(){
+    const title=$('wxUtilTitle'),sub=$('wxUtilSubtitle'),body=$('wxUtilBody');
+    if(!body)return;
+
+    title.textContent='公众号';
+    sub.textContent='月序订阅';
+
+    const reports=state.learning?.reports||{};
+    const history=Array.isArray(reports.history)?reports.history.slice().reverse().slice(0,8):[];
+    const historyHtml=history.length
+      ?history.map(x=>`
+        <div class="account-history-row">
+          <div>
+            <b>${x.type==='month'?'学习月报':'学习周报'}</b>
+            <span>${esc(x.period||'')}</span>
+          </div>
+          <time>${x.time?new Date(x.time).toLocaleDateString([], {month:'numeric',day:'numeric'}):''}</time>
+        </div>`).join('')
+      :'<div class="account-empty">还没有推送记录。<br>生成过的周报 / 月报会在这里留档。</div>';
+
+    body.innerHTML=`
+      <div class="util-hero">
+        <div class="big">报</div>
+        <h3>月序学习报</h3>
+        <p>公众号不再放 BBC / YouTube 外链。这里专门管理“会发到晏景聊天里的学习订阅”。</p>
+      </div>
+
+      <div class="account-sub-card">
+        <label class="account-sub-row">
+          <div><b>每周学习周报</b><span>新的一周打开月序时，把上一周总结推送到晏景聊天。</span></div>
+          <input class="wx-toggle" id="accountWeekToggle" type="checkbox">
+        </label>
+        <label class="account-sub-row">
+          <div><b>每月学习月报</b><span>新月份打开月序时，把上个月总结推送到晏景聊天。</span></div>
+          <input class="wx-toggle" id="accountMonthToggle" type="checkbox">
+        </label>
+      </div>
+
+      <button class="account-report-open" id="accountOpenLearningReport">查看 / 生成学习报告</button>
+
+      <div class="account-report-title">
+        <b>最近推送</b><span>${history.length} 条</span>
+      </div>
+      <div class="account-history">${historyHtml}</div>
+
+      <div class="account-explain">
+        周报和月报真正出现的位置仍然是你和晏景的聊天框；“公众号”现在只负责订阅开关和历史归档，所以不会再和 YouTube / 学习外链重复。
+      </div>`;
+
+    const week=$('accountWeekToggle'),month=$('accountMonthToggle');
+    week.checked=reports.autoWeek!==false;
+    month.checked=reports.autoMonth!==false;
+    week.onchange=e=>{
+      state.learning.reports.autoWeek=e.target.checked;
+      save();
+      const linked=$('autoWeeklyReport');if(linked)linked.checked=e.target.checked
+    };
+    month.onchange=e=>{
+      state.learning.reports.autoMonth=e.target.checked;
+      save();
+      const linked=$('autoMonthlyReport');if(linked)linked.checked=e.target.checked
+    };
+    $('accountOpenLearningReport').onclick=()=>{
+      $('wxUtilScreen').classList.remove('show');
+      $('learningReportScreen').classList.add('show');
+      renderLearningReport()
+    };
+  }
+
+  /* “公众号”单独接管；其他微信功能完全沿用原逻辑。 */
+  const oldOpenWxUtil1314=openWxUtil;
+  openWxUtil=function(type){
+    if(type==='accounts'){
+      $('wxTopMenu')?.classList.remove('show');
+      $('wxUtilScreen').classList.add('show');
+      renderAccountCenter1314();
+      return
+    }
+    return oldOpenWxUtil1314(type)
+  };
+
+  /* 重新绑定一次，确保旧 onclick 也走新版 openWxUtil。 */
+  document.querySelectorAll('[data-wx-util]').forEach(b=>{
+    b.onclick=()=>openWxUtil(b.dataset.wxUtil)
+  });
+
+  try{renderChat()}catch(_e){}
+  console.info('[Ephemeris v0.13.14] blank char / header state lowered / accounts = report subscriptions');
 })();
 </script>
 
