@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://music.yuncan.xyz" crossorigin>
 <link rel="preconnect" href="https://api.injahow.cn" crossorigin>
-<title>月序 · v0.13.0</title>
+<title>月序 · v0.13.1</title>
 <style>
 :root{
   --ink:#2c282a;--muted:#8f858a;--glass:rgba(255,255,255,.62);--glass2:rgba(255,255,255,.82);
@@ -17225,6 +17225,166 @@ $('customQuizPrev').onclick=()=>{stopSpeak();if(!customQuizItems.length)return;c
 document.querySelectorAll('[data-real-diff],[data-cet-diff]').forEach(b=>b.addEventListener('click',()=>setTimeout(refreshCards,0)));document.querySelectorAll('[data-real-type],[data-cet-type]').forEach(b=>b.addEventListener('click',()=>setTimeout(refreshCards,0)));
 if(state.practice?.cetDifficulty===undefined)state.practice.cetDifficulty='all';if(state.practice?.cetType===undefined)state.practice.cetType='all';save();refreshCards();
 console.info('[Ephemeris v0.13.0] CET small-question counts',BANK.cet4mix.questions.reduce((s,q)=>s+weight(q),0),BANK.cet6mix.questions.reduce((s,q)=>s+weight(q),0));
+})();
+</script>
+
+
+<style id="ephem131-style">
+/* ===== Ephemeris v0.13.1 · CET 统计口径 / 难度命名 / iOS 主屏稳定 ===== */
+/* Safari 普通标签页无法隐藏地址栏；添加到主屏幕后使用 standalone 视口。 */
+html,body{width:100%!important;height:100%!important;overflow:hidden!important;margin:0!important}
+.phone{width:100%!important;max-width:none!important;border-radius:0!important;box-shadow:none!important;height:100dvh!important;min-height:0!important}
+@media (display-mode:standalone){
+  html,body,.phone{height:100vh!important;min-height:100vh!important;max-height:100vh!important}
+  .phone{position:fixed!important;inset:0!important}
+}
+/* 所有应用页占满月序可用区域；滚动只发生在页面自己的 body 内。 */
+.screen,.subscreen,.chat-detail,.moments,.wx-util,.calendar-year-sheet,.calendar-day-screen,.note-detail-screen,.diary-detail-screen,.music-player-page,.music-search-page,.together-room,.together-chat-page,.char-call-screen,.practice-webview-screen,.github-paper-screen,.github-reader-screen,.quiz-screen,.official-info-screen,.cet-library-screen,.paper-viewer-screen,.english-skill-screen,#customQuizScreen{
+  width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;border-radius:0!important
+}
+/* iOS 双击缩放禁用，保留纵向滚动。 */
+.phone,.screen,.subscreen,.chat-detail,.moments,.wx-util,#customQuizScreen{touch-action:manipulation!important}
+#customQuizScreen .quiz-question-card{overscroll-behavior:contain!important}
+
+/* CET 入口说明 */
+.cet131-statbox{background:#fff;border-radius:16px;padding:12px;margin:8px 0 12px;box-shadow:0 3px 13px rgba(50,42,48,.035)}
+.cet131-stathead{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.cet131-stathead b{font-size:11px}.cet131-stathead span{font-size:8px;color:#999}
+.cet131-statgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:9px}
+.cet131-statgrid div{background:#f7f4f6;border-radius:11px;padding:8px 4px;text-align:center}
+.cet131-statgrid b{display:block;font-size:13px}.cet131-statgrid span{display:block;font-size:7px;color:#999;margin-top:2px}
+.cet131-reset{border:0;border-radius:999px;background:#f0e5ea;color:#8c6174;padding:7px 9px;font-size:8px}
+.cet131-help{margin-top:8px;font-size:8px;line-height:1.55;color:#8d8288}
+.exam131-article-title{font-size:15px;font-weight:800;line-height:1.4;margin:2px 0 6px}
+.exam131-article-intro{font-size:10px;line-height:1.65;color:#756b70;margin:0 0 12px;padding:10px 11px;background:#f7f4f6;border-radius:12px}
+</style>
+<script>
+/* ===== Ephemeris v0.13.1 · 修复 CET 标签、统计、筛选与全题池浏览 ===== */
+(()=>{
+  const BANK=window.BUILTIN_PRACTICE_BANKS;
+  if(!BANK) return;
+  const W=q=>Number(q?.weight)||1;
+  const small=list=>(list||[]).reduce((s,q)=>s+W(q),0);
+  const sh=a=>a.slice().sort(()=>Math.random()-.5);
+  const diffList=list=>{
+    const d=state.practice?.cetDifficulty||'all';
+    return d==='all'?(list||[]).slice():(list||[]).filter(q=>q.difficulty===d);
+  };
+  const dLabel=q=>{
+    const s=q?.subject||'';
+    const is4=s==='CET-4';
+    const map=is4
+      ? {base:'基础',cet4:'四级标准',cet6:'四级提高',challenge:'四级挑战'}
+      : {base:'基础',cet4:'六级基础+',cet6:'六级标准',challenge:'六级挑战'};
+    return map[q?.difficulty]||'智能混合';
+  };
+  const bankLabel={
+    cet4offline:['写','写作训练'],cet4vocab:['听','听力理解'],cet4grammar:['读','阅读理解'],cet4reading:['译','汉译英'],cet4mix:['随','真题结构随机'],
+    cet6offline:['写','写作训练'],cet6vocab:['听','听力理解'],cet6grammar:['读','阅读理解'],cet6reading:['译','汉译英'],cet6mix:['随','真题结构随机']
+  };
+  // 旧版本把题型筛选持久化，导致“真题结构随机”只剩长篇匹配 8 组。v0.13.1 起题型直接由入口选择。
+  state.practice=state.practice||{};
+  state.practice.cetType='all';
+  if(!['all','base','cet4','cet6','challenge'].includes(state.practice.cetDifficulty))state.practice.cetDifficulty='all';
+  save?.();
+
+  function breakdown(prefix){
+    const keys=[prefix+'offline',prefix+'vocab',prefix+'grammar',prefix+'reading'];
+    return keys.map(k=>({k,groups:diffList(BANK[k]?.questions||[]).length,small:small(diffList(BANK[k]?.questions||[]))}));
+  }
+  function refresh131(){
+    Object.entries(bankLabel).forEach(([k,[ic,nm]])=>{
+      const all=BANK[k]?.questions||[], cur=diffList(all), n=small(cur), g=cur.length;
+      document.querySelectorAll(`[data-builtin-bank="${k}"]`).forEach(btn=>{
+        const i=btn.querySelector('i'),b=btn.querySelector('b'),sp=btn.querySelector('span'),sm=btn.querySelector('small');
+        if(i)i.textContent=ic;if(b)b.textContent=nm;
+        if(sp)sp.textContent=`${n} 小题/任务 · ${g} 组`;
+        if(sm)sm.textContent='按 CET 笔试真实题型原创 · 非真题';
+      });
+    });
+    [['CET-4','cet4mix'],['CET-6','cet6mix']].forEach(([name,k])=>{
+      const all=BANK[k]?.questions||[],cur=diffList(all);
+      document.querySelectorAll('.cet-bank-head').forEach(h=>{
+        if(h.querySelector('b')?.textContent===name){
+          h.querySelector('span').textContent=`当前难度 ${small(cur)} 小题/任务 · ${cur.length} 组｜总池 ${small(all)}`;
+        }
+      });
+    });
+    document.querySelectorAll('.cet131-statbox').forEach(box=>{
+      const prefix=box.dataset.prefix, parts=breakdown(prefix), mix=BANK[prefix+'mix']?.questions||[],cur=diffList(mix);
+      box.querySelector('[data-stat-total]').textContent=`当前 ${small(cur)} / 总 ${small(mix)}`;
+      const grid=box.querySelector('.cet131-statgrid');
+      const names=['写作','听力','阅读','翻译'];
+      grid.innerHTML=parts.map((p,i)=>`<div><b>${p.small}</b><span>${names[i]} · ${p.groups}组</span></div>`).join('');
+    });
+  }
+  function rebuildFilters131(){
+    document.querySelectorAll('.cet-filter-card').forEach(card=>{
+      card.innerHTML=`<div class="cet-filter-title"><b>难度</b><span>题型直接点下面的写作 / 听力 / 阅读 / 翻译入口</span></div><div class="cet-chip-row">${[['all','全部'],['base','基础'],['cet4','标准'],['cet6','提高'],['challenge','挑战']].map(([k,v])=>`<button class="cet-chip ${state.practice.cetDifficulty===k?'active':''}" data-131-diff="${k}">${v}</button>`).join('')}</div><div class="cet-pool-note">这里不再保留“题型筛选”，避免上次把随机题库误筛成只剩 8 组长篇匹配。数字统一写成“小题/任务 + 组数”，不再把 10 个子题的一组说成 10 套题。</div>`;
+    });
+    document.querySelectorAll('[data-131-diff]').forEach(b=>b.onclick=()=>{
+      state.practice.cetDifficulty=b.dataset['131Diff'];save?.();rebuildFilters131();refresh131();
+    });
+  }
+  function installStats(){
+    const targets=[document.querySelector('.cet-expanded-folder'),document.querySelector('[data-qb-panel="cet"]')].filter(Boolean);
+    targets.forEach(target=>{
+      if(target.querySelector('.cet131-statbox'))return;
+      const first=target.querySelector('.cet-bank-head,.native-bank-title,.practice-level-tabs');
+      const wrap=document.createElement('div');
+      wrap.innerHTML=`<div class="cet131-statbox" data-prefix="cet4"><div class="cet131-stathead"><div><b>CET-4 题库统计</b><span data-stat-total></span></div><button class="cet131-reset">重置难度</button></div><div class="cet131-statgrid"></div><div class="cet131-help">“1008”指可实际作答的小题/任务总数，不是 1008 套页面；整套结构题会显示为“1 组 × 5/10 小题”。</div></div><div class="cet131-statbox" data-prefix="cet6"><div class="cet131-stathead"><div><b>CET-6 题库统计</b><span data-stat-total></span></div><button class="cet131-reset">重置难度</button></div><div class="cet131-statgrid"></div></div>`;
+      const frag=document.createDocumentFragment();while(wrap.firstChild)frag.appendChild(wrap.firstChild);
+      if(first)target.insertBefore(frag,first);else target.prepend(frag);
+    });
+    document.querySelectorAll('.cet131-reset').forEach(b=>b.onclick=()=>{state.practice.cetDifficulty='all';state.practice.cetType='all';save?.();rebuildFilters131();refresh131();toast?.('已恢复全部难度')});
+  }
+
+  // 不再只抽 20 组：进入任一入口后可以一直“下一题”刷完整入口题池。
+  const prevOpen=window.openBuiltinPractice;
+  window.openBuiltinPractice=openBuiltinPractice=function(key,startIndex=0){
+    if(!/^cet[46]/.test(key))return prevOpen?.(key,startIndex);
+    const bank=BANK[key];if(!bank)return;
+    const pool=sh(diffList(bank.questions||[]));
+    if(!pool.length){toast?.('这个难度暂时没有题');return}
+    const n=small(pool);
+    customQuizItems=pool.map((x,i)=>({...x,pack:bank.name,_poolSmall:n,_poolGroups:pool.length,_originBank:key,_originIndex:i}));
+    customQuizIndex=Math.max(0,Math.min(Number(startIndex)||0,customQuizItems.length-1));
+    state.practice.lastNativeBank=key;state.practice.lastNativeIndex=customQuizIndex;save?.();
+    $('customQuizScreen').classList.add('show');renderCustomQuiz();
+    toast?.(`完整入口：${pool.length} 组 · ${n} 小题/任务`);
+  };
+
+  // 在 v0.13.0 的渲染器之上修正文案与难度标签。
+  const render130=renderCustomQuiz;
+  renderCustomQuiz=function(){
+    const q=customQuizItems?.[customQuizIndex];
+    if(q?.type==='matchingSet') q.title='Long Matching · 阅读 Section B';
+    render130();
+    const cur=customQuizItems?.[customQuizIndex];if(!cur)return;
+    const badge=$('customQuizBadge');
+    if(badge){const spans=badge.querySelectorAll('.quiz-mini-tag');if(spans[1])spans[1].textContent=dLabel(cur)}
+    const meta=$('customQuizMeta');if(meta)meta.textContent=`${customQuizIndex+1} / ${customQuizItems.length} 组 · 本组 ${W(cur)} 小题 · 当前入口 ${cur._poolSmall||small(customQuizItems)} 小题`;
+    if(cur.type==='matchingSet'){
+      const opts=$('customQuizOptions');
+      const firstSection=opts?.querySelector('.exam130-section');
+      if(firstSection && !opts.querySelector('.exam131-article-title')){
+        const title=document.createElement('div');title.className='exam131-article-title';title.textContent=cur.subject==='CET-4'?'Campus & Community Changes':'Changes in Society, Technology and Public Life';
+        const intro=document.createElement('div');intro.className='exam131-article-intro';intro.textContent='这是长篇匹配：先通读 A–J 各段，再把后面的 10 条信息句匹配到包含同一信息或同义改写的段落。段落可重复使用。';
+        firstSection.insertAdjacentElement('afterend',intro);firstSection.insertAdjacentElement('afterend',title);
+      }
+    }
+  };
+
+  // 视口只使用 CSS dvh；standalone 用 100vh，避免 Safari 工具栏收放时旧 visualViewport 脚本反复改高度导致页面跳乱。
+  document.documentElement.style.removeProperty('--ephem-vh');
+  const keepStable=()=>{
+    const standalone=window.navigator.standalone===true||window.matchMedia?.('(display-mode: standalone)').matches;
+    document.documentElement.style.setProperty('--ephem-vh',standalone?'100vh':'100dvh');
+  };
+  keepStable();window.addEventListener('pageshow',keepStable,{passive:true});window.addEventListener('orientationchange',()=>setTimeout(keepStable,120),{passive:true});
+
+  installStats();rebuildFilters131();refresh131();
+  console.info('[Ephemeris v0.13.1] CET totals',small(BANK.cet4mix.questions),BANK.cet4mix.questions.length,small(BANK.cet6mix.questions),BANK.cet6mix.questions.length);
 })();
 </script>
 
