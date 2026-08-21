@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://music.yuncan.xyz" crossorigin>
 <link rel="preconnect" href="https://api.injahow.cn" crossorigin>
-<title>月序 · v0.13.9</title>
+<title>月序 · v0.13.10</title>
 <style>
 :root{
   --ink:#2c282a;--muted:#8f858a;--glass:rgba(255,255,255,.62);--glass2:rgba(255,255,255,.82);
@@ -4486,6 +4486,74 @@ button.chat-system-recall.char{text-decoration:underline;text-decoration-color:#
 .starpet-creature.easter-react .moonling-attached-tail{animation:attachedTailHappy .55s ease-in-out 2!important}
 @keyframes attachedTailHappy{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(12deg)}}
 </style>
+
+<!-- ===== Ephemeris v0.13.10 · 首页资料组件按容器真实中心定位 ===== -->
+<style id="ephem-v01310-profile-center">
+/*
+  不再让 profile-card 自己撑满整个组件后依赖 grid 的 align-content。
+  直接以组件本体的 50% 为基准定位内容组，再给一个很轻的向下视觉补偿。
+  这样 Safari / 主屏模式高度变化时，头像和文字仍以组件自身中心为准。
+*/
+.home-item.profile .home-card{
+  position:relative!important;
+}
+.home-item.profile .profile-card{
+  --profile-y-shift:clamp(16px,2.45vh,22px);
+  position:absolute!important;
+  left:0!important;
+  right:0!important;
+  top:50%!important;
+  bottom:auto!important;
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0 18px!important;
+  display:grid!important;
+  grid-template-columns:78px minmax(0,1fr)!important;
+  gap:17px!important;
+  align-items:center!important;
+  align-content:normal!important;
+  transform:translateY(calc(-50% + var(--profile-y-shift)))!important;
+}
+.home-item.profile .profile-card .avatar{
+  width:74px!important;
+  height:74px!important;
+  min-width:74px!important;
+  min-height:74px!important;
+  border-radius:50%!important;
+  align-self:center!important;
+  justify-self:end!important;
+  transform:none!important;
+}
+.home-item.profile .profile-copy{
+  align-self:center!important;
+  justify-self:stretch!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  margin:0!important;
+  transform:translateX(2px)!important;
+}
+@media(max-width:360px){
+  .home-item.profile .profile-card{
+    --profile-y-shift:16px;
+    grid-template-columns:74px minmax(0,1fr)!important;
+    gap:14px!important;
+    padding:0 15px!important;
+  }
+  .home-item.profile .profile-card .avatar{
+    width:70px!important;height:70px!important;
+    min-width:70px!important;min-height:70px!important;
+  }
+}
+@media(display-mode:standalone){
+  .home-item.profile .profile-card{
+    --profile-y-shift:clamp(18px,2.35vh,22px);
+  }
+}
+</style>
+
 </head>
 <body>
 <div class="phone" id="phone">
