@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://music.yuncan.xyz" crossorigin>
 <link rel="preconnect" href="https://api.injahow.cn" crossorigin>
-<title>月序 · v0.13.14</title>
+<title>月序 · v0.13.17</title>
 <style>
 :root{
   --ink:#2c282a;--muted:#8f858a;--glass:rgba(255,255,255,.62);--glass2:rgba(255,255,255,.82);
@@ -6791,10 +6791,11 @@ button.chat-system-recall.char{text-decoration:underline;text-decoration-color:#
     </div>
 
     <div class="panel file-backup-card">
-      <b>完整备份</b>
-      <p>包含聊天、素材库图片、音乐、学习记录、经期记录、世界书与桌面布局。API Key 不会写入备份。</p>
-      <button class="btn pink" id="exportBackupBtn2" style="width:100%">分享 / 存到“文件”</button>
-      <button class="btn soft" id="copyBackupBtn" style="width:100%;margin-top:7px">复制备份 JSON</button>
+      <b>导出月序</b>
+      <p><b>全部备份</b>用于归档；<b>便携备份</b>用于换设备和日常保存。便携备份会保留壁纸、头像、自定义 App 图标、桌面布局、素材库相册、表情包、朋友圈和全部文字数据，只舍弃聊天图片/语音、备忘录附件等高体积媒体。API Key 两种都不会导出。</p>
+      <button class="btn pink" id="exportBackupBtn2" style="width:100%">全部备份 · 分享 / 存到“文件”</button>
+      <button class="btn soft" id="exportLightBackupBtn" style="width:100%;margin-top:7px">便携备份 · 保留外观、相册和表情</button>
+      <button class="btn soft" id="copyBackupBtn" style="width:100%;margin-top:7px">复制全部备份 JSON</button>
       <label class="btn soft file-import-label" style="width:100%;margin-top:7px">
         选择备份文件导入
         <input id="importBackupInput" type="file" accept=".json,application/json,text/plain,*/*">
@@ -11262,7 +11263,7 @@ function renderMessage(m,i){
    </div></div>`
  }
  if(m.type==='practiceShare')return`<div class="${row}" data-msg-index="${i}" data-msg-type="${m.type||'text'}">${av}<div class="practice-share-card" data-practice-share="${i}"><div class="practice-share-main"><small>${esc(m.subject||'学习中心')} · ${esc(m.source||'题目')}</small><b>${esc(m.question||m.paper||'一份题目')}</b>${m.comment?`<div class="practice-share-comment">${esc(m.comment)}</div>`:''}</div><div class="practice-share-foot">转发给晏景 · 点开回到学习中心</div></div></div>`;
- if(m.type==='listenInvite'){const cover=m.cover||'',status=m.decision==='declined'?'晏景拒绝了邀请':m.decision==='accepted'||m.accepted?'晏景已加入':'等待晏景决定';return`<div class="${row}" data-msg-index="${i}" data-msg-type="${m.type||'text'}">${av}<div class="listen-invite-card" data-listen-msg="${i}"><div class="listen-invite-main"><div class="listen-invite-cover" style="${cover?`background-image:url('${cover}')`:''}">${cover?'':'♪'}</div><div class="listen-invite-copy"><b>一起听 · ${esc(m.song||'当前歌曲')}</b><span>${esc(m.artist||'月序音乐')}</span></div></div><div class="listen-invite-foot">${status}</div></div></div>`}
+ if(m.type==='listenInvite'){const cover=m.cover||'',status=m.fromChar?(m.decision==='declined'?'这次没有一起听':m.decision==='accepted'||m.accepted?'你已加入':'晏景邀请你一起听 · 点开决定'):(m.decision==='declined'?'晏景拒绝了邀请':m.decision==='accepted'||m.accepted?'晏景已加入':'等待晏景决定');return`<div class="${row}" data-msg-index="${i}" data-msg-type="${m.type||'text'}">${av}<div class="listen-invite-card" data-listen-msg="${i}"><div class="listen-invite-main"><div class="listen-invite-cover" style="${cover?`background-image:url('${cover}')`:''}">${cover?'':'♪'}</div><div class="listen-invite-copy"><b>${m.fromChar?'晏景邀请你一起听':'一起听'} · ${esc(m.song||'当前歌曲')}</b><span>${esc(m.artist||'月序音乐')}</span></div></div><div class="listen-invite-foot">${status}</div></div></div>`}
  const quoted=m.quote?`<div class="wx-quoted-inline"><b>${esc(m.quote.sender||'消息')}</b><span>${esc(m.quote.text||'')}</span></div>`:'';
  return`<div class="${row}" data-msg-index="${i}" data-msg-type="${m.type||'text'}">${av}<button type="button" class="bubble wx-text-bubble" data-wx-text-bubble="${i}"><span>${esc(m.text||'')}</span>${quoted}</button></div>`;
 }
@@ -11792,7 +11793,7 @@ function renderChat(){
  updateCharReplyButton();renderComposeContext();
  document.querySelectorAll('[data-wallet-msg]').forEach(b=>b.onclick=()=>openWalletMessage(+b.dataset.walletMsg));
  document.querySelectorAll('[data-practice-share]').forEach(b=>b.onclick=()=>{$('yanjingChat').classList.remove('show');$('wechatScreen').classList.remove('active');openScreen('practice')});
- document.querySelectorAll('[data-listen-msg]').forEach(b=>b.onclick=()=>{const m=state.chat[+b.dataset.listenMsg];if(m?.type==='listenInvite'){openTogetherRoom();if(m.decision==='declined')toast('这次晏景没有接受邀请')}});
+ document.querySelectorAll('[data-listen-msg]').forEach(b=>b.onclick=()=>{const m=state.chat[+b.dataset.listenMsg];if(m?.type!=='listenInvite')return;if(m.fromChar&&m.decision==='offered'){window.respondCharTogetherOffer?.(m);return}openTogetherRoom();if(m.decision==='declined'&&!m.fromChar)toast('这次晏景没有接受邀请')});
  renderWechatAvatars()
 }
 function updateSend(){const yes=$('chatInput').value.trim().length>0;$('sendBtn').classList.toggle('show',yes);$('plusBtn').style.display=yes?'none':'block';$('inputbar').classList.toggle('typing',yes)}
@@ -18781,6 +18782,559 @@ html,body{width:100%!important;height:100%!important;overflow:hidden!important;m
 
   try{renderChat()}catch(_e){}
   console.info('[Ephemeris v0.13.14] blank char / header state lowered / accounts = report subscriptions');
+})();
+</script>
+
+
+<!-- ===== Ephemeris v0.13.15 · 我们住过的日子 / 单入口世界书 / 双备份 / 主动一起听 ===== -->
+<style id="ephem-v01315-life-style">
+/* 日历里的「共同生活痕迹」：没有独立入口，只长在当天详情里。 */
+.life-trace-card{
+  margin:10px 0;border-radius:18px;background:linear-gradient(145deg,#fff,#f8edf2);
+  border:1px solid #eedde5;padding:14px;box-shadow:0 5px 18px rgba(65,50,58,.04)
+}
+.life-trace-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}
+.life-trace-head b{font-size:12px}
+.life-trace-head span{font-size:8px;color:#b27b91}
+.life-trace-list{display:grid;gap:7px}
+.life-trace-line{
+  display:grid;grid-template-columns:22px minmax(0,1fr);gap:7px;align-items:start;
+  font-size:9px;line-height:1.55;color:#62595e
+}
+.life-trace-line i{
+  width:22px;height:22px;border-radius:8px;background:#f3e4ea;display:grid;place-items:center;
+  font-style:normal;font-size:10px
+}
+.life-trace-quote{
+  margin-top:8px;border-left:3px solid #dfa6b9;background:rgba(255,255,255,.72);
+  border-radius:0 11px 11px 0;padding:8px 10px;font-size:9px;line-height:1.65;color:#6a5c63
+}
+.life-trace-photo{
+  margin-top:9px;display:grid;grid-template-columns:42px 1fr;gap:9px;align-items:center
+}
+.life-trace-photo img{
+  width:42px;height:42px;border-radius:10px;object-fit:cover;background:#eee
+}
+.life-trace-photo b{display:block;font-size:9px}
+.life-trace-photo span{display:block;font-size:8px;color:#999;margin-top:3px}
+.life-trace-foot{
+  margin-top:11px;padding-top:9px;border-top:1px solid #eee0e6;
+  text-align:center;font-size:8px;color:#a17f8d
+}
+
+/* 既有主动行为卡里补“一起听邀请”，不新开页面。 */
+.char-together-count-row{padding-bottom:10px}
+</style>
+
+<script id="ephem-v01315-life-script">
+(()=>{
+  if(window.__ephem1315Installed)return;
+  window.__ephem1315Installed=true;
+
+  /* ---------- 1. 世界书只保留微信入口 ----------
+     世界书数据和真正的编辑页面都保留，所以不影响 API 注入。
+     只删除桌面的独立 App 图标。 */
+  try{delete APPS.worldbook}catch(_e){}
+  state.page2=(state.page2||[]).filter(id=>id!=='worldbook');
+  state.dock=(state.dock||[]).filter(id=>id!=='worldbook');
+  if(state.layout)delete state.layout.worldbook;
+  if(state.page2Layout)delete state.page2Layout.worldbook;
+
+  function openWorldbookFromWechat1315(scope='global'){
+    worldFilter=scope;
+    $('worldbookScreen')?.classList.add('active');
+    try{startUsage('worldbook')}catch(_e){}
+    try{refreshWorldCharOptions();renderWorld();previewWorld()}catch(e){console.warn('worldbook open',e)}
+  }
+  if($('openWorldFromContacts'))$('openWorldFromContacts').onclick=()=>openWorldbookFromWechat1315('global');
+  if($('openWorld'))$('openWorld').onclick=()=>{
+    openWorldbookFromWechat1315('local');
+    if($('worldLocalFilterChar'))$('worldLocalFilterChar').value='yanjing';
+    renderWorld();previewWorld()
+  };
+
+  /* ---------- 2. 共同生活痕迹 ----------
+     不做新 App / 新入口，只给日历当天详情追加一张自动长出来的小卡片。 */
+  state.lifeTraces ||= {days:{},lastRecallAt:0};
+  state.lifeTraces.days ||= {};
+
+  function lifeKey1315(ts=Date.now()){
+    const d=new Date(ts);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+  }
+  function lifeDay1315(key=lifeKey1315()){
+    state.lifeTraces ||= {days:{},lastRecallAt:0};
+    state.lifeTraces.days ||= {};
+    state.lifeTraces.days[key] ||= {together:[],quotes:[],items:[],photos:[]};
+    const d=state.lifeTraces.days[key];
+    d.together ||= [];d.quotes ||= [];d.items ||= [];d.photos ||= [];
+    return d
+  }
+  function lifePushUnique1315(kind,item,key=lifeKey1315()){
+    const d=lifeDay1315(key),arr=d[kind]||(d[kind]=[]);
+    const sig=item.sig||item.id||item.name||item.text;
+    if(sig && arr.some(x=>(x.sig||x.id||x.name||x.text)===sig))return;
+    arr.push({...item,time:item.time||Date.now()});
+    if(arr.length>12)arr.splice(0,arr.length-12);
+    try{save(false)}catch(_e){}
+  }
+  function traceTogether1315(song,artist='',cover='',source='together'){
+    if(!song)return;
+    lifePushUnique1315('together',{
+      sig:`${song}|${artist}`,song:String(song),artist:String(artist||''),cover:String(cover||''),source
+    });
+  }
+  window.traceTogether1315=traceTogether1315;
+
+  function dateFromKey1315(key){return new Date(key+'T12:00:00')}
+  function sameDay1315(ts,key){
+    if(!ts)return false;
+    return lifeKey1315(Number(ts))===key
+  }
+  function traceData1315(key){
+    const trace=lifeDay1315(key);
+    const today=key===lifeKey1315();
+    const rec=state.calendarRecords?.[key]||null;
+    const learn=state.learning?.days?.[key]||{};
+    const done=rec?.done ?? (today?doneMain():0);
+    const total=rec?.total ?? (today?Math.max(1,state.tasks.filter(t=>t.type==='main').slice(0,4).length):4);
+    const focusMinutes=learn.focus?.minutes||rec?.learning?.focusMinutes||0;
+    const focusSessions=learn.focus?.sessions?.length||rec?.learning?.focusSessions?.length||0;
+    const bs=state.charBehavior?.stats?.[key]||{};
+    const proactive=(bs.message||0)+(bs.voice||0)+(bs.video||0)+(bs.together||0);
+    const diary=(state.diaries||[]).find(x=>x.day===key || sameDay1315(x.updated,key));
+    const liveFav=(state.favorites||[]).find(x=>x.kind==='chat'&&sameDay1315(x.time,key));
+    const quote=(trace.quotes||[]).at(-1)||(
+      liveFav?{text:liveFav.text||'',sender:liveFav.title||'收藏的一句话',time:liveFav.time}:null
+    );
+    const livePhoto=(state.photos||[]).find(x=>sameDay1315(x.createdAt,key));
+    const photo=(trace.photos||[]).at(-1)||(
+      livePhoto?{id:livePhoto.id,name:livePhoto.name||'一张照片',time:livePhoto.createdAt}:null
+    );
+    const actualPhoto=photo?.id?(state.photos||[]).find(x=>x.id===photo.id):null;
+    const item=(trace.items||[]).at(-1)||null;
+    return{
+      key,trace,done,total,focusMinutes,focusSessions,proactive,diary,quote,photo,item,
+      photoData:actualPhoto?.data||'',
+      has:!!((trace.together||[]).length||done||focusMinutes||proactive||diary||quote||photo||item)
+    }
+  }
+  function lifeTraceCardHTML1315(key){
+    const x=traceData1315(key);if(!x.has)return '';
+    const lines=[];
+    const songs=(x.trace.together||[]).slice(-3);
+    songs.forEach(s=>lines.push(`<div class="life-trace-line"><i>♪</i><div>一起听：《${esc(s.song)}》${s.artist?` · ${esc(s.artist)}`:''}</div></div>`));
+    if(x.done||x.total)lines.push(`<div class="life-trace-line"><i>月</i><div>月月今天完成：${x.done}/${x.total}</div></div>`);
+    if(x.focusMinutes)lines.push(`<div class="life-trace-line"><i>⌁</i><div>专注：${x.focusMinutes} 分钟${x.focusSessions?` · ${x.focusSessions} 次`:''}</div></div>`);
+    if(x.proactive)lines.push(`<div class="life-trace-line"><i>晏</i><div>晏景今天主动找过你：${x.proactive} 次</div></div>`);
+    if(x.diary)lines.push(`<div class="life-trace-line"><i>记</i><div>晏景写下了今天的日记。</div></div>`);
+    if(x.item)lines.push(`<div class="life-trace-line"><i>${esc(x.item.icon||'✦')}</i><div>小星球留下了：${esc(x.item.name||'一个小物件')}</div></div>`);
+    const quote=x.quote?.text?`<div class="life-trace-quote">“${esc(String(x.quote.text).slice(0,120))}”</div>`:'';
+    const photo=x.photo?`<div class="life-trace-photo">${x.photoData?`<img src="${x.photoData}" alt="">`:'<i style="width:42px;height:42px;border-radius:10px;background:#f0e7eb;display:grid;place-items:center">图</i>'}<div><b>${esc(x.photo.name||'那天的一张照片')}</b><span>这张也留在那一天。</span></div></div>`:'';
+    return `<section class="life-trace-card">
+      <div class="life-trace-head"><b>我们住过的日子</b><span>${esc(key.replaceAll('-','.'))}</span></div>
+      <div class="life-trace-list">${lines.join('')}</div>
+      ${quote}${photo}
+      <div class="life-trace-foot">今天我们都在这里。</div>
+    </section>`
+  }
+
+  const oldAgenda1315=renderCalendarAgenda;
+  renderCalendarAgenda=function(key){
+    oldAgenda1315(key);
+    const card=lifeTraceCardHTML1315(key);
+    if(card)$('calendarAgenda')?.insertAdjacentHTML('beforeend',card)
+  };
+  const oldOpenDay1315=openCalendarDay;
+  openCalendarDay=function(key){
+    oldOpenDay1315(key);
+    const card=lifeTraceCardHTML1315(key);
+    const hero=$('calendarDayBody')?.querySelector('.calendar-day-hero');
+    if(card&&hero)hero.insertAdjacentHTML('afterend',card)
+  };
+
+  /* 收藏一句话时，把“当时喜欢过”这件事留下来。
+     以后即使取消收藏，历史卡片也不会被抹掉。 */
+  const oldFavorite1315=favoriteWxMessage;
+  favoriteWxMessage=function(m){
+    const already=(state.favorites||[]).some(f=>f.kind==='chat'&&f.sourceId===m?.id);
+    oldFavorite1315(m);
+    if(!already && m){
+      const text=wxMessageSummary(m);
+      if(text)lifePushUnique1315('quotes',{
+        sig:m.id||('q'+Date.now()),text,sender:wxMessageSender(m)
+      })
+    }
+  };
+
+  /* 新导入的照片，只记一个轻量引用，不复制图片数据。 */
+  const oldImportPhotos1315=importPhotos;
+  importPhotos=async function(files){
+    const before=new Set((state.photos||[]).map(x=>x.id));
+    await oldImportPhotos1315(files);
+    const fresh=(state.photos||[]).filter(x=>!before.has(x.id));
+    fresh.slice(-3).forEach(p=>lifePushUnique1315('photos',{
+      sig:p.id,id:p.id,name:p.name||'一张照片',time:p.createdAt||Date.now()
+    },lifeKey1315(p.createdAt||Date.now())))
+  };
+
+  /* 星愿铺的小物件也能留一笔痕迹。 */
+  const oldBuyGood1315=buyPetGood;
+  buyPetGood=function(id){
+    const g=(typeof STAR_PET_GOODS!=='undefined')?STAR_PET_GOODS.find(x=>x.id===id):null;
+    const before=Number(state.starPet?.daily?.goodsCount)||0;
+    oldBuyGood1315(id);
+    const after=Number(state.starPet?.daily?.goodsCount)||0;
+    if(g&&after>before)lifePushUnique1315('items',{
+      sig:`${lifeKey1315()}|${id}`,id,name:g.name,icon:g.icon
+    })
+  };
+
+  /* 一起听真正开始时自动留下歌曲痕迹。 */
+  const oldAcceptTogether1315=acceptTogetherInvite;
+  acceptTogetherInvite=function(message){
+    oldAcceptTogether1315(message);
+    traceTogether1315(message?.song||state.music.name,message?.artist||state.music.artist,state.music.songCover||message?.cover||'','user-invite')
+  };
+
+  /* ---------- 3. 晏景接受 / 拒绝一起听：API 优先；没 API 时只改状态，不塞固定台词 ---------- */
+  charDecideTogether=async function(message){
+    if(!message)return;
+    if(state.charBehavior.togetherDecision===false){
+      acceptTogetherInvite(message);
+      try{nudgeCharState?.(3,-3,1)}catch(_e){}
+      return
+    }
+
+    message.decision='pending';save();renderChat();
+    let accepted=null,reply='';
+    const apiReply=await charApiText(
+      `月月邀请你一起听《${message.song||'当前歌曲'}》，歌手 ${message.artist||'未知'}。你可以接受，也可以拒绝。结合世界书和你的即时状态自主决定。第一行只能写 ACCEPT 或 DECLINE；第二行可以自然回复一句，不超过20字。`,
+      'together'
+    );
+    if(apiReply){
+      const lines=apiReply.split(/\r?\n/),first=(lines[0]||'').toUpperCase();
+      if(first.includes('ACCEPT'))accepted=true;
+      if(first.includes('DECLINE'))accepted=false;
+      reply=lines.slice(1).join(' ').trim()
+    }
+    if(accepted===null){
+      const cs=state.wechat?.charState||{mood:68,energy:76,closeness:72};
+      let p=.20+(Number(cs.energy)||0)*.004+(Number(cs.closeness)||0)*.003+(Number(cs.mood)||0)*.0015;
+      accepted=Math.random()<Math.max(.16,Math.min(.88,p))
+    }
+
+    if(accepted){
+      acceptTogetherInvite(message);
+      try{nudgeCharState?.(4,-4,1)}catch(_e){}
+    }else{
+      message.accepted=false;message.decision='declined';
+      state.listenTogether.active=false;state.listenTogether.invited=false;
+      try{nudgeCharState?.(-1,2,0)}catch(_e){}
+      toast('晏景这次没有接受')
+    }
+    if(reply)state.chat.push({id:'listenreply'+Date.now(),role:'assistant',text:reply,auto:true,time:Date.now()});
+    save();renderChat();renderTogether();renderIsland()
+  };
+
+  /* ---------- 4. 晏景主动发起一起听 ----------
+     只在你已经在播放一首歌时发生；不会凭空换歌。 */
+  state.charBehavior.proactiveTogether ??= true;
+  state.charBehavior.togetherMax = Number.isFinite(Number(state.charBehavior.togetherMax)) ? Number(state.charBehavior.togetherMax) : 1;
+
+  const behaviorCard=document.querySelector('.char-behavior-card');
+  const decisionRow=$('charTogetherDecision')?.closest('.char-setting-row');
+  if(behaviorCard&&decisionRow&&!$('charProactiveTogether')){
+    const row=document.createElement('div');
+    row.className='char-setting-row';
+    row.innerHTML='<div><b>主动邀请一起听</b><span>你自己听歌时，晏景也可以突然邀请你一起。</span></div><input class="wx-toggle" id="charProactiveTogether" type="checkbox" checked>';
+    decisionRow.insertAdjacentElement('afterend',row);
+
+    const count=document.createElement('div');
+    count.className='char-count-row char-together-count-row';
+    count.innerHTML='<span>一起听邀请 / 天</span><input id="charTogetherMax" type="number" min="0" max="10" step="1" value="1"><button data-char-test="together">测试</button>';
+    row.insertAdjacentElement('afterend',count);
+  }
+
+  const oldBehaviorAllowed1315=behaviorAllowed;
+  behaviorAllowed=function(type){
+    if(type==='together'){
+      const s=behaviorStats(),b=state.charBehavior;
+      return b.proactiveTogether!==false && (s.together||0)<Math.max(0,Number(b.togetherMax)||0)
+    }
+    return oldBehaviorAllowed1315(type)
+  };
+
+  const oldRenderBehavior1315=renderCharBehaviorSettings;
+  renderCharBehaviorSettings=function(){
+    oldRenderBehavior1315();
+    if($('charProactiveTogether'))$('charProactiveTogether').checked=state.charBehavior.proactiveTogether!==false;
+    if($('charTogetherMax'))$('charTogetherMax').value=state.charBehavior.togetherMax??1;
+    const s=behaviorStats(),b=state.charBehavior;
+    if($('charBehaviorToday'))$('charBehaviorToday').textContent=
+      `今日：主动消息 ${s.message||0}/${b.messageMax??4} · 一起听 ${s.together||0}/${b.togetherMax??1} · 朋友圈 ${s.moment||0}/${b.momentMax??1} · 语音 ${s.voice||0}/${b.voiceMax??1} · 视频 ${s.video||0}/${b.videoMax??1}`
+  };
+  const oldSaveBehavior1315=saveCharBehaviorSettings;
+  saveCharBehaviorSettings=function(){
+    if($('charProactiveTogether'))state.charBehavior.proactiveTogether=$('charProactiveTogether').checked;
+    if($('charTogetherMax'))state.charBehavior.togetherMax=Math.max(0,Math.min(10,+$('charTogetherMax').value||0));
+    oldSaveBehavior1315()
+  };
+  $('charProactiveTogether')?.addEventListener('change',saveCharBehaviorSettings);
+  $('charTogetherMax')?.addEventListener('change',saveCharBehaviorSettings);
+
+  function acceptCharTogetherOffer1315(m){
+    if(!m)return;
+    m.decision='accepted';m.accepted=true;
+    state.listenTogether.active=true;
+    state.listenTogether.invited=false;
+    state.listenTogether.charInvited=false;
+    state.listenTogether.startedAt=Date.now();
+    state.listenTogether.songKey=togetherSongKey();
+    traceTogether1315(m.song||state.music.name,m.artist||state.music.artist,m.cover||state.music.songCover||'','char-invite');
+    save();renderChat();renderTogether();renderIsland();openTogetherRoom();
+    toast('你接受了晏景的一起听邀请')
+  }
+  function declineCharTogetherOffer1315(m){
+    if(!m)return;
+    m.decision='declined';m.accepted=false;
+    state.listenTogether.charInvited=false;
+    save();renderChat();renderTogether();
+    toast('这次先不一起听')
+  }
+  window.respondCharTogetherOffer=function(m){
+    const yes=confirm(`晏景邀请你一起听《${m.song||'这首歌'}》。\n\n“确定”接受，“取消”这次不了。`);
+    yes?acceptCharTogetherOffer1315(m):declineCharTogetherOffer1315(m)
+  };
+
+  async function generateProactiveTogether1315(force=false){
+    if(!force&&!behaviorAllowed('together'))return;
+    if(state.listenTogether?.active||state.listenTogether?.charInvited)return;
+    if(!state.music?.name||!state.music?.url){
+      if(force)toast('先自己播放一首歌，晏景才有东西可以邀请你一起听');
+      return
+    }
+
+    let shouldInvite=force,reply='';
+    const apiReply=await charApiText(
+      `月月现在正自己听《${state.music.name}》，歌手 ${state.music.artist||'未知'}。你可以主动邀请她一起听，也可以这次不打扰。结合世界书、共同生活痕迹和即时状态自主决定。第一行只能写 INVITE 或 PASS；第二行若邀请，写一句不超过20字的话。`,
+      'together'
+    );
+    if(apiReply){
+      const lines=apiReply.split(/\r?\n/),first=(lines[0]||'').toUpperCase();
+      if(first.includes('INVITE'))shouldInvite=true;
+      if(first.includes('PASS'))shouldInvite=false;
+      reply=lines.slice(1).join(' ').trim()
+    }else if(!force){
+      const cs=state.wechat?.charState||{mood:68,energy:76,closeness:72};
+      shouldInvite=(Number(cs.energy)||0)>35 && Math.random()<.38
+    }
+    if(!shouldInvite)return;
+
+    const msg={
+      id:'listen-char-'+Date.now(),role:'assistant',type:'listenInvite',fromChar:true,
+      song:state.music.name,artist:state.music.artist||'月序音乐',
+      cover:state.music.songCover||'',accepted:false,decision:'offered',
+      text:reply||'',time:Date.now(),auto:true
+    };
+    state.chat.push(msg);
+    state.listenTogether.charInvited=true;
+    state.listenTogether.invited=false;
+    state.listenTogether.charInviteMessageId=msg.id;
+    if(!force)recordBehavior('together');else{save();renderCharBehaviorSettings()}
+    renderChat();renderTogether();
+    if(!$('yanjingChat')?.classList.contains('show'))toast('晏景邀请你一起听')
+  }
+  window.generateProactiveTogether1315=generateProactiveTogether1315;
+
+  /* 替换主动行为轮询：把“一起听”作为第五种行为。
+     仍然复用原来的每日上限与冷却，不增加额外 API 轮询频率。 */
+  runCharAutonomy=async function(forceType=''){
+    if(forceType==='message')return generateProactiveMessage(true);
+    if(forceType==='moment')return generateCharMoment(true);
+    if(forceType==='voice')return triggerCharCall('voice',true);
+    if(forceType==='video')return triggerCharCall('video',true);
+    if(forceType==='together')return generateProactiveTogether1315(true);
+
+    if(document.hidden)return;
+    const b=state.charBehavior;
+    if(Date.now()-(b.lastActionAt||0)<180000)return;
+
+    const options=[];
+    if(behaviorAllowed('message'))options.push('message','message','message');
+    if(behaviorAllowed('together')&&state.music?.name&&state.music?.url&&!state.listenTogether?.active)options.push('together');
+    if(behaviorAllowed('moment'))options.push('moment');
+    if(behaviorAllowed('voice'))options.push('voice');
+    if(behaviorAllowed('video'))options.push('video');
+    if(!options.length||Math.random()>.32)return;
+
+    const pick=options[Math.floor(Math.random()*options.length)];
+    if(pick==='message')await generateProactiveMessage();
+    if(pick==='together')await generateProactiveTogether1315();
+    if(pick==='moment')await generateCharMoment();
+    if(pick==='voice')triggerCharCall('voice');
+    if(pick==='video')triggerCharCall('video')
+  };
+
+  document.querySelector('[data-char-test="together"]')?.addEventListener('click',()=>generateProactiveTogether1315(true));
+
+  /* ---------- 5. 轻量导出 ----------
+     去掉 data:/blob: 大资源；保留文字、结构、聊天文本、学习、世界书和设置。 */
+  function stripHeavy1315(value){
+    if(typeof value==='string' && (/^data:/i.test(value)||/^blob:/i.test(value)))return '';
+    if(Array.isArray(value))return value.map(stripHeavy1315);
+    if(value&&typeof value==='object'){
+      const o={};
+      Object.entries(value).forEach(([k,v])=>o[k]=stripHeavy1315(v));
+      return o
+    }
+    return value
+  }
+  function makeLightBackupObject1315(){
+    const original=JSON.parse(JSON.stringify(state));
+    const cloned=stripHeavy1315(JSON.parse(JSON.stringify(state)));
+    if(cloned.api)delete cloned.api.key;
+
+    /* 轻量备份仍然保留“这是你的月序”所需要的视觉资产。 */
+    cloned.profile ||= {};
+    cloned.profile.avatar=original.profile?.avatar||'';
+    cloned.profile.wall=original.profile?.wall||'';
+
+    cloned.musicProfile ||= {};
+    cloned.musicProfile.avatar=original.musicProfile?.avatar||'';
+    cloned.musicProfile.cover=original.musicProfile?.cover||'';
+
+    cloned.wechat ||= {};
+    cloned.wechat.meAvatar=original.wechat?.meAvatar||'';
+    cloned.wechat.charAvatar=original.wechat?.charAvatar||'';
+    cloned.wechat.momentsCover=original.wechat?.momentsCover||'';
+    cloned.wechat.contacts=(original.wechat?.contacts||[]).map(c=>({...c}));
+
+    cloned.listenTogether ||= {};
+    cloned.listenTogether.meAvatar=original.listenTogether?.meAvatar||'';
+    cloned.listenTogether.charAvatar=original.listenTogether?.charAvatar||'';
+
+    /* 自定义 App 图标属于桌面外观。 */
+    cloned.appIcons=JSON.parse(JSON.stringify(original.appIcons||{}));
+
+    /* 素材库相册完整保留，包括图片本体。 */
+    cloned.photos=JSON.parse(JSON.stringify(original.photos||[]));
+
+    /* 表情包属于“月序长什么样 / 我们平时怎么聊天”的一部分，便携备份也完整保留。 */
+    cloned.stickers=JSON.parse(JSON.stringify(original.stickers||[]));
+
+    /* 朋友圈图片属于生活痕迹，也保留；聊天媒体仍然精简。 */
+    cloned.moments=JSON.parse(JSON.stringify(original.moments||[]));
+
+    /* 真正舍弃的是高体积、可单独丢弃的聊天媒体。 */
+    if(cloned.chat)cloned.chat=cloned.chat.map(m=>({...m,data:'',image:'',audioData:'',blob:''}));
+
+    return{
+      app:'Ephemeris',
+      version:'0.13.17-portable',
+      exportedAt:new Date().toISOString(),
+      note:'便携备份：保留壁纸、头像、自定义 App 图标、桌面布局、素材库相册、表情包、朋友圈，以及文字/设置/学习/聊天文字/世界书；不含聊天图片/语音和备忘录附件等高体积媒体。',
+      state:cloned,
+      noteAssets:{}
+    }
+  }
+  async function exportLightBackup1315(){
+    await ensurePhotosHydrated();
+    const json=JSON.stringify(makeLightBackupObject1315(),null,2);
+    const stamp=new Date().toISOString().slice(0,10);
+    const name=`Ephemeris-便携备份-${stamp}.json`;
+    const blob=new Blob([json],{type:'application/json'});
+    const file=new File([blob],name,{type:'application/json'});
+    $('fileExportStatus').textContent='正在准备便携备份…';
+
+    try{
+      if(navigator.share && navigator.canShare?.({files:[file]})){
+        await navigator.share({files:[file],title:'Ephemeris 便携备份',text:'保留壁纸、头像、桌面布局、素材库相册、表情包和朋友圈；不含聊天图片/语音与备忘录附件等高体积媒体。'});
+        $('fileExportStatus').textContent='便携备份已交给系统分享菜单。';
+        return
+      }
+    }catch(e){
+      if(e?.name==='AbortError'){$('fileExportStatus').textContent='已取消便携备份。';return}
+    }
+    try{
+      const url=URL.createObjectURL(blob),a=document.createElement('a');
+      a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),5000);
+      $('fileExportStatus').textContent='已尝试下载便携备份。';
+    }catch(_e){
+      const ok=await copyTextRobust(json);
+      $('fileExportStatus').textContent=ok?'便携备份已复制到剪贴板。':'当前浏览器限制了便携备份。'
+    }
+  }
+  $('exportLightBackupBtn')?.addEventListener('click',exportLightBackup1315);
+
+  /* 导入旧备份后也不让独立世界书 App 重新出现。 */
+  const oldRefreshImport1315=refreshAfterBackupImport;
+  refreshAfterBackupImport=function(){
+    try{delete APPS.worldbook}catch(_e){}
+    state.page2=(state.page2||[]).filter(id=>id!=='worldbook');
+    state.dock=(state.dock||[]).filter(id=>id!=='worldbook');
+    if(state.layout)delete state.layout.worldbook;
+    if(state.page2Layout)delete state.page2Layout.worldbook;
+    state.lifeTraces ||= {days:{},lastRecallAt:0};
+    oldRefreshImport1315();
+    if($('openWorldFromContacts'))$('openWorldFromContacts').onclick=()=>openWorldbookFromWechat1315('global');
+    if($('openWorld'))$('openWorld').onclick=()=>openWorldbookFromWechat1315('local');
+  };
+
+  /* ---------- 6. 晏景偶尔记起生活痕迹 ----------
+     不新增 API 调用，只在原本要调用模型时附上一小段可选记忆。
+     同一首歌再次出现时优先命中；否则只有低概率带一条旧痕迹。 */
+  function lifeRecallContext1315(prompt=''){
+    const days=Object.entries(state.lifeTraces?.days||{})
+      .filter(([k,d])=>k!==lifeKey1315() && d && ((d.together||[]).length||(d.quotes||[]).length||(d.items||[]).length))
+      .sort((a,b)=>a[0]<b[0]?1:-1);
+    if(!days.length)return '';
+
+    const q=String(prompt||'').toLowerCase();
+    for(const [key,d] of days){
+      const hit=(d.together||[]).find(s=>s.song&&q.includes(String(s.song).toLowerCase()));
+      if(hit)return `${key}：你们一起听过《${hit.song}》${hit.artist?`（${hit.artist}）`:''}。`
+    }
+    if(Math.random()>.12)return '';
+    const [key,d]=days[Math.floor(Math.random()*Math.min(days.length,8))];
+    if(d.quotes?.length)return `${key}：那天收藏过一句“${String(d.quotes.at(-1).text||'').slice(0,60)}”。`;
+    if(d.together?.length)return `${key}：那天一起听过《${d.together.at(-1).song}》。`;
+    if(d.items?.length)return `${key}：那天给小龙留下了「${d.items.at(-1).name}」。`;
+    return ''
+  }
+  const oldCharApiLife1315=charApiText;
+  charApiText=async function(prompt,feature='wechat',charId='yanjing'){
+    if(charId==='yanjing'){
+      const memory=lifeRecallContext1315(prompt);
+      if(memory)prompt=`[共同生活痕迹：${memory} 只有在当前话题自然相关时才可以轻轻提一句；不要汇报、不要强行怀旧。]\n${prompt}`
+    }
+    return oldCharApiLife1315(prompt,feature,charId)
+  };
+
+  /* 给现有资料做一次轻量回填：今天的收藏 / 照片也能立刻出现在卡片里。 */
+  (state.favorites||[]).filter(x=>x.kind==='chat'&&sameDay1315(x.time,lifeKey1315())).slice(0,3).forEach(x=>
+    lifePushUnique1315('quotes',{sig:x.sourceId||x.id,text:x.text||'',sender:x.title||'收藏'})
+  );
+  (state.photos||[]).filter(x=>sameDay1315(x.createdAt,lifeKey1315())).slice(-3).forEach(p=>
+    lifePushUnique1315('photos',{sig:p.id,id:p.id,name:p.name||'一张照片',time:p.createdAt})
+  );
+
+  save(false);
+  try{renderDesktop();renderCharBehaviorSettings();renderFiles()}catch(_e){}
+  console.info('[Ephemeris v0.13.15] life traces / worldbook single entry / dual export / proactive together ready')
+})();
+</script>
+
+
+<!-- ===== Ephemeris v0.13.16 · 轻量备份保留外观与相册 ===== -->
+<script id="ephem-v01316-light-backup-note">
+(()=>{
+  window.__ephemLightBackupProfile={
+    version:'0.13.17',
+    keeps:['wallpaper','avatars','appIcons','layout','photoLibrary','stickers','moments'],
+    strips:['chatMedia','voiceMedia','noteAttachments']
+  };
 })();
 </script>
 
