@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://music.yuncan.xyz" crossorigin>
 <link rel="preconnect" href="https://api.injahow.cn" crossorigin>
-<title>月序 · v0.13.10</title>
+<title>月序 · v0.13.11</title>
 <style>
 :root{
   --ink:#2c282a;--muted:#8f858a;--glass:rgba(255,255,255,.62);--glass2:rgba(255,255,255,.82);
@@ -18355,6 +18355,130 @@ html,body{width:100%!important;height:100%!important;overflow:hidden!important;m
   }
 
   console.info('[Ephemeris v0.13.9] chat DOM rebuilt / visualViewport locked / profile vertically centered');
+})();
+</script>
+
+
+
+<!-- ===== Ephemeris v0.13.11 · 返回热区 / 左缘右滑返回 ===== -->
+<style id="ephem-v01311-back-gesture-style">
+/* 只扩大“实际可点范围”，不改变箭头、字体、头像、按钮视觉尺寸或页面布局。 */
+.back,
+.screen-head>button:first-child,
+.chat-head>button:first-child,
+.together-chat-head>button:first-child,
+.together-room-head>button:first-child,
+.player-head>button:first-child,
+.music-search-head>button:first-child,
+.note-detail-head>button:first-child,
+.apple-year-header>button:first-child,
+.red-detail-nav>button:first-child{
+  position:relative;
+  overflow:visible!important;
+  touch-action:manipulation;
+}
+.back::before,
+.screen-head>button:first-child::before,
+.chat-head>button:first-child::before,
+.together-chat-head>button:first-child::before,
+.together-room-head>button:first-child::before,
+.player-head>button:first-child::before,
+.music-search-head>button:first-child::before,
+.note-detail-head>button:first-child::before,
+.apple-year-header>button:first-child::before,
+.red-detail-nav>button:first-child::before{
+  content:"";
+  position:absolute;
+  inset:-8px;
+  background:transparent;
+  border-radius:16px;
+}
+</style>
+<script id="ephem-v01311-back-gesture-script">
+(()=>{
+  if(window.__ephem1311BackGestureInstalled)return;
+  window.__ephem1311BackGestureInstalled=true;
+
+  const BACK_SELECTOR=[
+    '.back',
+    '.screen-head>button:first-child',
+    '.chat-head>button:first-child',
+    '.together-chat-head>button:first-child',
+    '.together-room-head>button:first-child',
+    '.player-head>button:first-child',
+    '.music-search-head>button:first-child',
+    '.note-detail-head>button:first-child',
+    '.apple-year-header>button:first-child',
+    '.red-detail-nav>button:first-child'
+  ].join(',');
+
+  function isVisible(el){
+    if(!el || el.disabled || el.getClientRects().length===0)return false;
+    const s=getComputedStyle(el);
+    return s.display!=='none' && s.visibility!=='hidden' && Number(s.opacity||1)>0;
+  }
+
+  function layerScore(el){
+    let score=0, depth=0, n=el;
+    while(n && n!==document.documentElement){
+      const z=parseInt(getComputedStyle(n).zIndex,10);
+      if(Number.isFinite(z))score=Math.max(score,z);
+      depth++;
+      n=n.parentElement;
+    }
+    return score*10000+depth;
+  }
+
+  function currentBackButton(){
+    const buttons=[...document.querySelectorAll(BACK_SELECTOR)].filter(isVisible);
+    if(!buttons.length)return null;
+    buttons.sort((a,b)=>layerScore(b)-layerScore(a));
+    return buttons[0];
+  }
+
+  const EDGE=24;
+  let active=false, horizontal=false, startX=0, startY=0, startAt=0, backBtn=null;
+
+  document.addEventListener('touchstart',e=>{
+    if(e.touches.length!==1)return;
+    const t=e.touches[0];
+    if(t.clientX>EDGE)return;
+    const btn=currentBackButton();
+    if(!btn)return; // 首页没有可返回页面时，完全不接管手势。
+    active=true;horizontal=false;startX=t.clientX;startY=t.clientY;startAt=performance.now();backBtn=btn;
+  },{passive:true,capture:true});
+
+  document.addEventListener('touchmove',e=>{
+    if(!active || e.touches.length!==1)return;
+    const t=e.touches[0],dx=t.clientX-startX,dy=t.clientY-startY;
+    if(!horizontal && dx>8 && Math.abs(dx)>Math.abs(dy)*1.15)horizontal=true;
+    if(horizontal && dx>0)e.preventDefault();
+  },{passive:false,capture:true});
+
+  document.addEventListener('touchend',e=>{
+    if(!active)return;
+    const t=e.changedTouches?.[0];
+    const btn=backBtn;
+    const wasHorizontal=horizontal;
+    active=false;horizontal=false;backBtn=null;
+    if(!t || !wasHorizontal || !btn || !document.contains(btn))return;
+
+    const dx=t.clientX-startX;
+    const dt=Math.max(1,performance.now()-startAt);
+    const velocity=dx/dt;
+    const width=Math.max(1,document.documentElement.clientWidth||innerWidth||390);
+    const farEnough=dx>=width*.35;
+    const fastEnough=dx>=58 && velocity>=.55;
+    if(farEnough || fastEnough){
+      try{btn.click()}catch(_){ }
+    }
+  },{passive:true,capture:true});
+
+  document.addEventListener('touchcancel',()=>{
+    active=false;horizontal=false;backBtn=null;
+  },{passive:true,capture:true});
+
+  console.info('[Ephemeris v0.13.11] larger back hit area / left-edge swipe back installed');
 })();
 </script>
 
