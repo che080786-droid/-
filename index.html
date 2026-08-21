@@ -17980,5 +17980,203 @@ html,body{width:100%!important;height:100%!important;overflow:hidden!important;m
 })();
 </script>
 
+
+
+<!-- ===== Ephemeris v0.13.5 · 微信/一起听真正锁头 + 状态放备注下 ===== -->
+<style id="ephem-v0135-style">
+/*
+  这版不再依赖 grid “看起来像固定”。
+  抬头、消息区、输入区三块直接绝对定位：滚动只发生在消息区。
+*/
+#yanjingChat.chat-detail.show{
+  display:block!important;
+  position:fixed!important;inset:0!important;
+  width:100%!important;height:100dvh!important;
+  overflow:hidden!important;overscroll-behavior:none!important;
+}
+#yanjingChat .chat-head{
+  position:absolute!important;left:0!important;right:0!important;top:0!important;
+  z-index:90!important;margin:0!important;transform:none!important;
+  flex:none!important;
+}
+#yanjingChat .messages{
+  position:absolute!important;left:0!important;right:0!important;
+  top:calc(54px + env(safe-area-inset-top))!important;
+  bottom:var(--wx-compose-h,58px)!important;
+  min-height:0!important;height:auto!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;overscroll-behavior-y:contain!important;
+  scroll-padding-bottom:18px!important;
+}
+#yanjingChat>div:last-child{
+  position:absolute!important;left:0!important;right:0!important;bottom:0!important;
+  z-index:90!important;background:#f7f7f7!important;
+  transform:none!important;
+}
+
+/* 备注在第一行，即时状态在备注正下方；整个标题区仍可点来改备注。 */
+#yanjingChat .chat-name{
+  display:flex!important;flex-direction:column!important;align-items:center!important;
+  justify-content:center!important;gap:2px!important;
+  min-width:0!important;line-height:1.05!important;
+}
+#yanjingChat .chat-name::after{
+  content:attr(data-status);
+  display:block;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:8.5px;font-weight:500;color:#9a9698;line-height:1.15;
+  min-height:10px;
+}
+
+/* 一起听主房间：抬头固定，内容自己滚。 */
+#togetherRoom.together-room.show{overflow:hidden!important}
+#togetherRoom .together-room-head{
+  position:absolute!important;left:0!important;right:0!important;top:0!important;
+  z-index:95!important;margin:0!important;transform:none!important;
+}
+#togetherRoom .together-room-body{
+  position:absolute!important;left:0!important;right:0!important;
+  top:calc(58px + env(safe-area-inset-top))!important;bottom:0!important;
+  height:auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;overscroll-behavior-y:contain!important;
+}
+
+/* 一起听聊天：和正常微信一样，抬头/输入栏不跟消息走。 */
+#togetherChatPage.together-chat-page.show{
+  display:block!important;position:fixed!important;inset:0!important;
+  width:100%!important;height:100dvh!important;overflow:hidden!important;
+  overscroll-behavior:none!important;
+}
+#togetherChatPage .together-chat-head{
+  position:absolute!important;left:0!important;right:0!important;top:0!important;
+  z-index:95!important;margin:0!important;transform:none!important;
+}
+#togetherChatPage .together-chat-messages{
+  position:absolute!important;left:0!important;right:0!important;
+  top:calc(56px + env(safe-area-inset-top))!important;
+  bottom:var(--together-compose-h,58px)!important;
+  height:auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;
+  padding-bottom:18px!important;-webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-y:contain!important;
+}
+#togetherChatPage .together-chat-compose{
+  position:absolute!important;left:0!important;right:0!important;bottom:0!important;
+  z-index:95!important;margin:0!important;transform:none!important;
+}
+
+/* 键盘唤起时不允许页面本体被 Safari 顺手滚走。 */
+#chatInput,#togetherChatInput{font-size:16px!important;touch-action:manipulation}
+</style>
+<script id="ephem-v0135-script">
+(()=>{
+  const wx=$('yanjingChat'), wxFoot=wx?.querySelector(':scope > div:last-child');
+  const together=$('togetherChatPage'), togetherCompose=together?.querySelector('.together-chat-compose');
+
+  function syncLockedChatGeometry(){
+    if(wx&&wxFoot){
+      const h=Math.ceil(wxFoot.getBoundingClientRect().height||58);
+      wx.style.setProperty('--wx-compose-h',`${h}px`);
+    }
+    if(together&&togetherCompose){
+      const h=Math.ceil(togetherCompose.getBoundingClientRect().height||58);
+      together.style.setProperty('--together-compose-h',`${h}px`);
+    }
+  }
+  try{
+    const ro=new ResizeObserver(syncLockedChatGeometry);
+    if(wxFoot)ro.observe(wxFoot);
+    if(togetherCompose)ro.observe(togetherCompose);
+  }catch(_){ }
+  addEventListener('resize',syncLockedChatGeometry,{passive:true});
+  window.visualViewport?.addEventListener?.('resize',syncLockedChatGeometry,{passive:true});
+  setTimeout(syncLockedChatGeometry,0);
+
+  // 把即时状态直接放到备注正下方。亲近度留在详情页，不把聊天抬头做成游戏面板。
+  function syncHeaderState(){
+    const title=document.querySelector('#yanjingChat .chat-name');
+    if(!title)return;
+    let s='';
+    try{
+      const full=typeof window.charRuntimeStateText==='function'?window.charRuntimeStateText():'';
+      // full: “平静 · 精力 76 · 亲近 72” -> 顶部只显示前两段。
+      s=String(full||'').split(' · ').slice(0,2).join(' · ');
+    }catch(_){ }
+    title.dataset.status=s||'平静';
+  }
+  syncHeaderState();
+  setInterval(syncHeaderState,4000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden){syncHeaderState();syncLockedChatGeometry()}});
+
+  // 打开微信/一起听聊天时立即重算，且只把消息滚到底，不滚整个页面。
+  const oldOpenYanjing=$('openYanjing')?.onclick;
+  if($('openYanjing'))$('openYanjing').onclick=function(e){
+    oldOpenYanjing?.call(this,e);setTimeout(()=>{syncHeaderState();syncLockedChatGeometry();const m=$('messageList');if(m)m.scrollTop=m.scrollHeight},30)
+  };
+  const oldOpenTogether=$('openTogetherChat')?.onclick;
+  if($('openTogetherChat'))$('openTogetherChat').onclick=function(e){
+    oldOpenTogether?.call(this,e);setTimeout(()=>{syncLockedChatGeometry();const m=$('togetherChatMessages');if(m)m.scrollTop=m.scrollHeight},30)
+  };
+
+  // Safari 聚焦输入框时偶尔尝试移动布局视口：只修正聊天容器，不碰月序其他页面。
+  ['chatInput','togetherChatInput'].forEach(id=>{
+    const el=$(id);if(!el)return;
+    el.addEventListener('focus',()=>setTimeout(()=>{
+      syncLockedChatGeometry();
+      const host=id==='chatInput'?wx:together;
+      if(host){host.scrollTop=0;host.style.transform='translate3d(0,0,0)'}
+    },80));
+  });
+
+  console.info('[Ephemeris v0.13.5] locked chat headers + inline char state installed');
+})();
+</script>
+
 </body>
 </html>
+
+<style id="ephem136-home-profile-fix">
+/* ===== Ephemeris v0.13.6 · 首页资料组件微调 =====
+   仅调整头像与文字内容，不改变组件外框尺寸。 */
+.profile-card{
+  grid-template-columns:78px minmax(0,1fr)!important;
+  gap:17px!important;
+  padding:10px 18px!important;
+  align-items:center!important;
+}
+.profile-card .avatar{
+  width:74px!important;
+  height:74px!important;
+  min-width:74px!important;
+  min-height:74px!important;
+  aspect-ratio:1/1!important;
+  border-radius:50%!important;
+  justify-self:end!important;
+  align-self:center!important;
+  font-size:30px!important;
+  overflow:hidden!important;
+}
+.profile-copy{
+  min-width:0!important;
+  transform:translate(2px,2px)!important;
+}
+.profile-copy h1{
+  font-size:21.5px!important;
+  line-height:1.14!important;
+  margin:0 0 5px!important;
+}
+.profile-copy .handle{
+  font-size:10px!important;
+  margin:0 0 6px!important;
+}
+.profile-copy .sign{
+  font-size:11px!important;
+  line-height:1.55!important;
+}
+.profile-copy .loc{
+  font-size:9.5px!important;
+  margin-top:5px!important;
+}
+@media(max-width:360px){
+  .profile-card{grid-template-columns:74px minmax(0,1fr)!important;gap:14px!important;padding-left:15px!important;padding-right:15px!important}
+  .profile-card .avatar{width:70px!important;height:70px!important;min-width:70px!important;min-height:70px!important}
+}
+</style>
