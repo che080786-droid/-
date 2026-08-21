@@ -18363,5 +18363,172 @@ html,body{width:100%!important;height:100%!important;overflow:hidden!important;m
 })();
 </script>
 
+
+<!-- ===== Ephemeris v0.13.8 · 长按菜单可见 / 微信与一起听三段锁定 / 首页资料垂直居中 ===== -->
+<style id="ephem-v0138-chat-menu-layout-fix">
+/* 1) 修复 v0.13.5 残留规则把微信长按菜单刷成浅色：明确恢复深色菜单。 */
+#yanjingChat > #wxMsgMenu.wx-msg-menu{
+  position:fixed!important;
+  z-index:9996!important;
+  display:none;
+  min-width:240px!important;
+  max-width:calc(100vw - 18px)!important;
+  height:46px!important;
+  border-radius:8px!important;
+  background:#27272a!important;
+  box-shadow:0 7px 24px rgba(0,0,0,.28)!important;
+  overflow:visible!important;
+}
+#yanjingChat > #wxMsgMenu.wx-msg-menu.show{display:grid!important}
+#yanjingChat > #wxMsgMenu.wx-msg-menu button{
+  display:block;
+  border:0!important;
+  background:transparent!important;
+  color:#fff!important;
+  opacity:1!important;
+  font-size:9px!important;
+  font-weight:500!important;
+  line-height:46px!important;
+  padding:0 7px!important;
+  white-space:nowrap!important;
+}
+#yanjingChat > #wxMsgMenu.wx-msg-menu button+button:before{
+  content:''!important;position:absolute!important;left:0!important;top:11px!important;bottom:11px!important;
+  width:1px!important;background:rgba(255,255,255,.13)!important;
+}
+#yanjingChat > #wxMsgMenu.wx-msg-menu > i{
+  border-top-color:#27272a!important;
+}
+#yanjingChat > #wxMsgMenu.wx-msg-menu.below > i{
+  border-top-color:transparent!important;
+  border-bottom-color:#27272a!important;
+}
+#yanjingChat > #wxMsgMenuShade.wx-msg-menu-shade{
+  position:fixed!important;inset:0!important;z-index:9995!important;background:transparent!important;
+}
+
+/* 2) 微信：真正的三行布局。宿主固定，只有 messages 这一行允许滚动。 */
+#yanjingChat.chat-detail.show{
+  display:grid!important;
+  grid-template-rows:auto minmax(0,1fr) auto!important;
+  position:fixed!important;inset:0!important;
+  width:100%!important;height:100dvh!important;
+  max-height:100dvh!important;
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+  touch-action:auto!important;
+  background:#ededed!important;
+}
+#yanjingChat .chat-head{
+  position:relative!important;inset:auto!important;
+  grid-row:1!important;z-index:50!important;
+  flex:none!important;transform:none!important;margin:0!important;
+}
+#yanjingChat .messages{
+  position:relative!important;inset:auto!important;
+  grid-row:2!important;
+  width:100%!important;height:100%!important;min-height:0!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-y:contain!important;
+  touch-action:pan-y!important;
+}
+#yanjingChat .wx-compose-shell{
+  position:relative!important;inset:auto!important;
+  grid-row:3!important;z-index:50!important;
+  width:100%!important;max-height:46dvh!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+  margin:0!important;transform:none!important;
+  background:#f7f7f7!important;
+}
+
+/* 3) 一起听聊天：同样使用三行网格，不再依赖测量高度/absolute top。 */
+#togetherChatPage.together-chat-page.show{
+  display:grid!important;
+  grid-template-rows:auto minmax(0,1fr) auto!important;
+  position:fixed!important;inset:0!important;
+  width:100%!important;height:100dvh!important;max-height:100dvh!important;
+  overflow:hidden!important;overscroll-behavior:none!important;
+  touch-action:auto!important;background:#ededed!important;
+}
+#togetherChatPage .together-chat-head{
+  position:relative!important;inset:auto!important;
+  grid-row:1!important;z-index:50!important;
+  margin:0!important;transform:none!important;flex:none!important;
+}
+#togetherChatPage .together-chat-messages{
+  position:relative!important;inset:auto!important;
+  grid-row:2!important;width:100%!important;height:100%!important;min-height:0!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-y:contain!important;
+  touch-action:pan-y!important;
+  padding-bottom:18px!important;
+}
+#togetherChatPage .together-chat-compose{
+  position:relative!important;inset:auto!important;
+  grid-row:3!important;z-index:50!important;
+  margin:0!important;transform:none!important;flex:none!important;
+  background:#f7f7f7!important;
+}
+
+/* 键盘出现时，输入框字号保持 16px，阻止 iOS Safari 自动页面缩放。 */
+#chatInput,#togetherChatInput{font-size:16px!important}
+
+/* 4) 首页第一个资料组件：只把文字块向下校正并与头像垂直居中；其余组件尺寸不动。 */
+.profile-card{align-items:center!important}
+.profile-copy{
+  align-self:center!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  min-height:74px!important;
+  transform:translate(2px,5px)!important;
+}
+</style>
+<script id="ephem-v0138-chat-menu-layout-script">
+(()=>{
+  if(window.__ephem138Installed)return;window.__ephem138Installed=true;
+  const by=id=>document.getElementById(id);
+
+  // 用户消息可编辑/撤回；双方消息都保留回复、收藏、删除。菜单每次打开时重新校正可见项。
+  const oldOpen=window.openWxMsgMenu;
+  if(typeof oldOpen==='function'){
+    window.openWxMsgMenu=function(index,row){
+      oldOpen(index,row);
+      const m=(window.state?.chat||[])[index];
+      const menu=by('wxMsgMenu');if(!m||!menu)return;
+      const edit=menu.querySelector('[data-wx-msg-action="edit"]');
+      const recall=menu.querySelector('[data-wx-msg-action="recall"]');
+      const quote=menu.querySelector('[data-wx-msg-action="quote"]');
+      const fav=menu.querySelector('[data-wx-msg-action="favorite"]');
+      const del=menu.querySelector('[data-wx-msg-action="delete"]');
+      if(edit)edit.style.display=(m.role==='user'&&(!m.type||m.type==='text'))?'block':'none';
+      if(recall)recall.style.display=m.role==='user'?'block':'none';
+      if(quote)quote.style.display='block';
+      if(fav)fav.style.display='block';
+      if(del)del.style.display='block';
+      const visible=[...menu.querySelectorAll('button')].filter(b=>getComputedStyle(b).display!=='none').length;
+      menu.style.gridTemplateColumns=`repeat(${Math.max(1,visible)},minmax(0,1fr))`;
+    };
+  }
+
+  function keepOnlyMessagePaneScrolled(host,list){
+    if(host)host.scrollTop=0;
+    if(list)requestAnimationFrame(()=>{list.scrollTop=list.scrollHeight});
+  }
+  const wx=by('yanjingChat'), wxList=by('messageList');
+  const tg=by('togetherChatPage'), tgList=by('togetherChatMessages');
+  ['chatInput','togetherChatInput'].forEach(id=>{
+    const input=by(id);if(!input)return;
+    input.addEventListener('focus',()=>setTimeout(()=>{
+      keepOnlyMessagePaneScrolled(id==='chatInput'?wx:tg,id==='chatInput'?wxList:tgList);
+    },80));
+  });
+
+  console.info('[Ephemeris v0.13.8] long-press menu visible / chat three-row lock / profile copy centered');
+})();
+</script>
+
 </body>
 </html>
