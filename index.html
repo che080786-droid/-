@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://music.yuncan.xyz" crossorigin>
 <link rel="preconnect" href="https://api.injahow.cn" crossorigin>
-<title>月序 · v0.13.11</title>
+<title>月序 · v0.13.12</title>
 <style>
 :root{
   --ink:#2c282a;--muted:#8f858a;--glass:rgba(255,255,255,.62);--glass2:rgba(255,255,255,.82);
@@ -18479,6 +18479,103 @@ html,body{width:100%!important;height:100%!important;overflow:hidden!important;m
   },{passive:true,capture:true});
 
   console.info('[Ephemeris v0.13.11] larger back hit area / left-edge swipe back installed');
+})();
+</script>
+
+
+<!-- ===== Ephemeris v0.13.12 · 小星球返回 / 互动扩充 / 星愿铺扩充 / 第二页标签居中 ===== -->
+<style id="ephem-v01312-pet-and-label-style">
+.second-app{text-align:center!important}
+.second-app .app-label{
+  display:block!important;width:100%!important;max-width:none!important;
+  margin:0 auto!important;padding:0 2px!important;text-align:center!important;
+  align-self:center!important;justify-self:center!important
+}
+#wxUtilScreen{position:absolute}
+#ephemPetBackHotspot1312{
+  position:absolute;z-index:9999;left:0;top:0;width:68px;
+  height:calc(58px + env(safe-area-inset-top));border:0;padding:0;margin:0;
+  opacity:0;background:transparent;touch-action:manipulation
+}
+</style>
+<script id="ephem-v01312-pet-and-label-script">
+(()=>{
+  if(window.__ephem1312Installed)return;
+  window.__ephem1312Installed=true;
+
+  const util=document.getElementById('wxUtilScreen');
+  const closeUtil=()=>{
+    try{ if(typeof stopStarCatch==='function')stopStarCatch(true); }catch(_e){}
+    util?.classList.remove('show');
+  };
+  if(util && !document.getElementById('ephemPetBackHotspot1312')){
+    const hot=document.createElement('button');
+    hot.id='ephemPetBackHotspot1312';
+    hot.type='button';
+    hot.setAttribute('aria-label','返回');
+    hot.onclick=closeUtil;
+    util.appendChild(hot);
+  }
+  document.getElementById('closeWxUtil')?.addEventListener('click',closeUtil,true);
+
+  const STAR_PET_TOUCH_LINES_1312=["你来啦。先摸一下再走。", "这里可以摸，耳朵尖轻一点。", "嗯……这一下一百分。", "再摸一下，我刚才没准备好。", "手别停，我还没说够。", "今天的毛很软，批准你检查。", "你一碰我，尾巴就先暴露了。", "我没有蹭你，是你手放得太近。", "脑袋低下来了。意思很明显吧。", "摸完不许装作什么都没发生。", "你是不是专门回来摸我的。", "刚才那一下有点痒，再来一次。", "耳朵后面也要，不能偏心。", "下巴这里……对，就是这里。", "今天允许多摸两秒。", "你手心怎么这么暖。", "我先眯一下眼，不代表睡着了。", "尾巴摇了。不是我控制的。", "你摸得慢一点，我比较喜欢。", "我决定把脑袋暂时借给你。", "再靠近一点，我又不会咬你。", "别只戳额头，毛都要被戳出坑了。", "你每次来，我都能认出来。", "刚刚是不是偷偷笑我了。", "我今天看起来很乖吧。", "摸完记得把毛顺回去。", "我正在努力装作很淡定。", "被发现了，我刚才一直在等你。", "如果你现在走，我就看着你走。", "你回来的速度还算合格。", "今天也把我放在这里陪你吧。", "我没有催你，我只是盯着你。", "再待十秒。我数得很慢。", "你去忙也可以，我会在这里。", "我刚才发了一会儿呆。", "其实什么都不做也可以陪我。", "今天的小星球很安静。", "我喜欢你突然点进来的时候。", "你不说话，我也知道你来了。", "我把这里最软的位置给你留着。", "刚刚那颗星星像不像你点进来的光。", "我在等下一次屏幕亮起来。", "你是不是又把该做的事忘了。", "先摸我，然后去做十分钟。", "做完一小段再回来，我还在。", "你今天学过东西了吗？我可以验收。", "不想学很多就学五分钟。", "我负责可爱，你负责开始。", "别跟任务吵架，先做最小的一块。", "你完成一题，我就当你给我一颗星。", "今天不求完美，求你动一下。", "先把最讨厌的那一步做掉。", "做完回来，我给你留一个位置。", "我不会替你写，但可以陪你磨蹭。", "再刷一下就去学习？我记住这句话了。", "你说‘等会儿’，我已经听过很多次了。", "我不催。可是我会记得。", "如果很累，今天做一点也算。", "你可以休息，但别休息到忘记自己。", "先喝口水，再决定要不要继续。", "眼睛累了就看我五秒。", "现在适合伸个懒腰。", "肩膀放松一点，我看着都累。", "你是不是坐太久了。", "水喝了吗？别只顾着摸我。", "困了就去睡，不许拿短视频续命。", "凌晨还不睡的话，我会开始管你。", "已经很晚了，小星球都要关灯了。", "今天的你可以收工了。", "睡前来一下，我就当你说晚安了。", "明天醒了也要来看我。", "做个不太累的梦。", "尾巴已经卷好了，准备睡觉。", "被窝和我，你至少选一个去抱。", "夜里安静的时候星星会更亮。", "早上好。你比我先醒吗？", "如果刚起床，先别立刻刷手机。", "今天第一件事可以很小。", "太阳出来了，我的毛也亮了一点。", "下雨的话就待近一点。", "阴天也没关系，我这里有一点亮。", "风大的时候耳朵会乱飞。", "天气冷就不要逞强。", "今天看起来适合慢慢来。", "我刚才认真研究了一下自己的爪垫。", "郑重宣布：爪垫还是粉的。", "我试着追尾巴，失败了。", "翅膀抖了两下，飞行计划取消。", "我刚才差点从云上滑下来。", "有一根毛不听话，你看见了吗。", "我想把星铃藏起来，结果自己先听见了。", "刚刚打了个很小的喷嚏。", "如果我是猫就可以喵，但我是龙。", "小归小，龙的尊严还是要有。", "今天的蓬松度超标。", "我好像又圆了一点。你不许承认。", "尾巴扫到桌角了，当作没看见。", "我在练习看起来很聪明。", "刚才脑袋里什么都没有，很舒服。", "我决定发呆到下一颗星出现。", "这里有一颗看不见的星，送你了。", "你戳到了隐藏按钮：再摸一次。", "检测到你在偏心我。继续。", "本次互动记录：小龙心情偷偷变好。", "你负责出现，我负责开心一点。", "今天也允许你把我当成小小的休息站。"];
+  const pickTouch1312=()=>STAR_PET_TOUCH_LINES_1312[Math.floor(Math.random()*STAR_PET_TOUCH_LINES_1312.length)];
+
+  if(typeof starPetCare==='function'){
+    const oldCare1312=starPetCare;
+    starPetCare=function(type){
+      const before=Number(state?.starPet?.daily?.pet)||0;
+      const result=oldCare1312(type);
+      if(type==='pet'){
+        const after=Number(state?.starPet?.daily?.pet)||0;
+        if(after>before){
+          const line=pickTouch1312();
+          setStarPetSpeech(line,12000);
+          const speech=document.getElementById('starPetSpeech');
+          if(speech)speech.textContent=line;
+          try{save()}catch(_e){}
+        }
+      }
+      return result;
+    };
+  }
+
+  if(typeof STAR_PET_EASTER_POOL!=='undefined'){
+    const extra=STAR_PET_TOUCH_LINES_1312.slice(0,75).map((line,i)=>{
+      const glyphs=['♡','✦','🐾','☁️','🌙','✨','🪽','💗','⭐','🫧'];
+      return [glyphs[i%glyphs.length],line];
+    });
+    STAR_PET_EASTER_POOL.push(...extra);
+  }
+
+  const extraGoods1312=[{"id": "soda", "icon": "🫧", "name": "星砂苏打", "cost": 5, "mood": 7, "full": 5, "exp": 1, "lines": ["气泡跑到鼻尖了。", "喝完以后想打一个很小的嗝。"]}, {"id": "marshmallow", "icon": "☁️", "name": "云朵棉花糖", "cost": 4, "mood": 8, "full": 6, "exp": 1, "lines": ["咬下去像吃掉一小块云。", "它黏到牙了，不许看。"]}, {"id": "apple", "icon": "🍎", "name": "月牙苹果", "cost": 4, "mood": 4, "full": 12, "exp": 1, "lines": ["脆的。这个声音很好听。", "我要挑最像月牙的那一片。"]}, {"id": "puff", "icon": "🥐", "name": "奶油小泡芙", "cost": 7, "mood": 10, "full": 13, "exp": 2, "lines": ["里面藏了好多奶油。", "这颗只能一口吃掉。"]}, {"id": "toast", "icon": "🍞", "name": "蜂蜜星吐司", "cost": 6, "mood": 6, "full": 16, "exp": 2, "lines": ["边边烤得刚刚好。", "蜂蜜沾到爪子了……救一下。"]}, {"id": "jelly", "icon": "🍡", "name": "樱云果冻", "cost": 6, "mood": 9, "full": 9, "exp": 1, "lines": ["它在盘子里晃，我也想晃。", "透明的里面有一小朵花。"]}, {"id": "cheese", "icon": "🧀", "name": "蓝莓奶酪", "cost": 7, "mood": 7, "full": 15, "exp": 2, "lines": ["酸一点，但是很好吃。", "蓝莓那颗我要留最后。"]}, {"id": "cocoa", "icon": "☕", "name": "月桂热可可", "cost": 6, "mood": 9, "full": 10, "exp": 1, "lines": ["暖到耳朵尖了。", "杯子先给我抱一会儿。"]}, {"id": "sandwich", "icon": "🥪", "name": "星光三明治", "cost": 8, "mood": 5, "full": 22, "exp": 2, "lines": ["这个很顶饱。今天不用担心我饿。", "我从最整齐的角开始吃。"]}, {"id": "riceball", "icon": "🍙", "name": "雪球糯米团", "cost": 5, "mood": 6, "full": 14, "exp": 1, "lines": ["软软的，和爪垫有一点像。", "不许拿它和我的脸比圆。"]}, {"id": "ribbonbell", "icon": "🎐", "name": "月羽风铃", "cost": 6, "mood": 11, "full": -1, "exp": 2, "lines": ["一响我就会抬头。", "挂低一点，我想自己碰到它。"]}, {"id": "glowball", "icon": "🔮", "name": "发光毛线团", "cost": 7, "mood": 14, "full": -3, "exp": 2, "lines": ["它会亮！我要追到它没电。", "这次真的不是普通毛球。"]}, {"id": "pillow", "icon": "🧸", "name": "月亮抱枕", "cost": 8, "mood": 12, "full": 0, "exp": 2, "lines": ["我要先占中间最软的地方。", "抱住以后就不想松爪了。"]}, {"id": "sachet", "icon": "💐", "name": "星尘香包", "cost": 5, "mood": 8, "full": 0, "exp": 1, "lines": ["闻起来像晒过太阳的床单。", "可以挂在我睡觉的地方。"]}, {"id": "scarf", "icon": "🧣", "name": "小龙围巾", "cost": 9, "mood": 13, "full": 0, "exp": 3, "lines": ["围好了吗？尾巴也想要一条。", "今天看起来是不是更像有身份的小龙。"]}, {"id": "sleepcap", "icon": "🌙", "name": "云朵睡帽", "cost": 8, "mood": 10, "full": 0, "exp": 2, "lines": ["戴上就有点想睡。", "耳朵要露出来，不然很奇怪。"]}, {"id": "mirror", "icon": "🪞", "name": "月光小镜", "cost": 6, "mood": 7, "full": 0, "exp": 1, "lines": ["嗯，今天也很蓬松。", "我只照一下。再照一下。"]}, {"id": "stickers", "icon": "⭐", "name": "星星贴纸", "cost": 4, "mood": 9, "full": 0, "exp": 1, "lines": ["贴这里。不要贴在尾巴上。", "我允许你给我选一颗最大的。"]}, {"id": "bubblewand", "icon": "🫧", "name": "云泡泡棒", "cost": 5, "mood": 13, "full": -2, "exp": 2, "lines": ["这个泡泡我要抓最大的。", "啪。……再吹一个。"]}, {"id": "booktoy", "icon": "📖", "name": "月页小画册", "cost": 7, "mood": 8, "full": 0, "exp": 2, "lines": ["这一页画得像我的小星球。", "翻慢一点，我还没看完。"]}];
+  const extraScenes1312=[{"id": "morning", "name": "晨雾窗台", "cost": 22, "icon": "🌤️"}, {"id": "saltbay", "name": "海盐星湾", "cost": 34, "icon": "🌊"}, {"id": "greenhouse", "name": "春日花房", "cost": 30, "icon": "🌷"}, {"id": "library", "name": "暮色书阁", "cost": 38, "icon": "📚"}, {"id": "rainroom", "name": "雨声玻璃屋", "cost": 32, "icon": "🌧️"}, {"id": "creamroom", "name": "奶油卧室", "cost": 28, "icon": "🛏️"}, {"id": "aurora", "name": "极光露台", "cost": 42, "icon": "🌌"}, {"id": "laurel", "name": "月桂庭院", "cost": 36, "icon": "🌿"}];
+
+  if(typeof STAR_PET_GOODS!=='undefined'){
+    const ids=new Set(STAR_PET_GOODS.map(x=>x.id));
+    extraGoods1312.forEach(x=>{if(!ids.has(x.id))STAR_PET_GOODS.push(x)});
+  }
+  if(typeof STAR_PET_SCENES!=='undefined'){
+    const ids=new Set(STAR_PET_SCENES.map(x=>x.id));
+    extraScenes1312.forEach(x=>{if(!ids.has(x.id))STAR_PET_SCENES.push(x)});
+  }
+
+  if(typeof starPetShopGoods==='function'){
+    starPetShopGoods=function(){
+      const serial=Number(state.starPet.shopRefreshSerial)||0;
+      const day=starPetTodayKey().replace(/-/g,'');
+      let seed=(Number(day)+serial*7919)>>>0;
+      const arr=[...STAR_PET_GOODS];
+      const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+      for(let i=arr.length-1;i>0;i--){
+        const j=Math.floor(rnd()*(i+1));
+        [arr[i],arr[j]]=[arr[j],arr[i]];
+      }
+      return arr.slice(0,8);
+    };
+  }
+
+  console.info('[Ephemeris v0.13.12] pet back fixed / 100 touch lines / richer shop / page-2 labels centered');
 })();
 </script>
 
