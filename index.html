@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://music.yuncan.xyz" crossorigin>
 <link rel="preconnect" href="https://api.injahow.cn" crossorigin>
-<title>月序 · v0.12.6</title>
+<title>月序 · v0.12.8</title>
 <style>
 :root{
   --ink:#2c282a;--muted:#8f858a;--glass:rgba(255,255,255,.62);--glass2:rgba(255,255,255,.82);
@@ -16475,6 +16475,383 @@ distort|歪曲|misrepresent|A small sample can distort the overall picture of pu
   }
   installFilters();refreshCetCounts();renderQBContentHealth();
   console.info('[Ephemeris v0.12.7] CET pools',BUILTIN_PRACTICE_BANKS.cet4mix.questions.length,BUILTIN_PRACTICE_BANKS.cet6mix.questions.length)
+})();
+</script>
+
+
+<!-- ===== Ephemeris v0.12.8 · CET 真题结构训练 / 全屏练习 ===== -->
+<style>
+/* CET 练习页改成真正的全屏答题，不再用悬浮卡片挤空间 */
+#customQuizScreen{background:#fff;touch-action:manipulation;-webkit-text-size-adjust:100%}
+#customQuizScreen .screen-head{background:rgba(255,255,255,.97);backdrop-filter:blur(16px)}
+#customQuizScreen .screen-body.quiz-body{
+  height:calc(100% - 54px - env(safe-area-inset-top));padding:0!important;overflow:hidden!important;
+  background:#fff;position:relative
+}
+#customQuizScreen .quiz-question-card{
+  height:100%;min-height:0;margin:0!important;border-radius:0!important;box-shadow:none!important;
+  padding:20px 18px calc(104px + env(safe-area-inset-bottom))!important;overflow:auto;background:#fff
+}
+#customQuizScreen .quiz-source-badge{margin-bottom:15px}
+#customQuizScreen .quiz-question-card h3{font-size:16px!important;line-height:1.72!important;margin-bottom:16px!important;white-space:pre-wrap}
+#customQuizScreen .quiz-options{gap:9px}
+#customQuizScreen .quiz-option{font-size:11px!important;line-height:1.55!important;padding:12px 13px!important}
+#customQuizScreen .quiz-feedback{font-size:10px!important;line-height:1.72!important;white-space:pre-wrap;margin-top:12px}
+#customQuizScreen .quiz-actions{
+  position:absolute;left:0;right:0;bottom:0;z-index:8;margin:0!important;padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+  background:rgba(250,248,249,.96);backdrop-filter:blur(18px);border-top:1px solid #ebe7e9
+}
+#customQuizScreen .quiz-actions button{height:44px;font-size:11px}
+#customQuizScreen .quiz-char-box{display:none!important}
+#customQuizScreen .multi-answer-wrap textarea{min-height:210px!important;font-size:12px!important;line-height:1.75!important}
+#customQuizScreen .multi-answer-wrap input{font-size:12px!important}
+#customQuizScreen .listen-quiz-box{
+  grid-template-columns:54px 1fr 40px!important;padding:12px!important;background:#f5f1f3!important;margin:0 0 14px!important
+}
+#customQuizScreen .listen-quiz-box>button:first-child{width:52px!important;height:52px!important;font-size:19px!important}
+#customQuizScreen .listen-quiz-copy b{font-size:10px!important}.listen-quiz-copy span{font-size:8px!important;line-height:1.5}
+#customQuizScreen .exam-direction{margin:0 0 12px;padding:10px 11px;border-radius:12px;background:#f7f5f6;color:#746b70;font-size:9px;line-height:1.65}
+#customQuizScreen .exam-wordbank{margin:8px 0 13px;padding:10px;border-radius:12px;background:#f2eef1;color:#6c6267;font-size:9px;line-height:1.75}
+#customQuizScreen .exam-section-mark{font-size:8px;color:#a46f84;letter-spacing:.08em;font-weight:750;margin-bottom:5px}
+#customQuizScreen .exam-passages{font-size:10px;line-height:1.7;color:#343034;white-space:pre-wrap}
+/* 阻止双击页面放大；按钮仍保持正常单击 */
+#customQuizScreen,#customQuizScreen *{touch-action:manipulation}
+</style>
+<script>
+(()=>{
+  const LEVEL_LABEL={base:'基础',cet4:'标准',cet6:'提高',challenge:'挑战'};
+  const TYPE_LABEL={writing:'写作',listeningChoice:'听力选择',wordBank:'选词填空',matching:'长篇匹配',reading:'仔细阅读',translation:'汉译英'};
+  const allowedTypes=new Set(['all','writing','listening','wordbank','matching','reading','translation']);
+  if(!allowedTypes.has(state.practice.cetType))state.practice.cetType='all';
+
+  const diffBy=i=>['base','cet4','cet6','challenge'][i%4];
+  const sh=a=>a.slice().sort(()=>Math.random()-.5);
+  const uniq=a=>[...new Set(a.filter(Boolean))];
+  function opts(correct,pool,count=4){
+    const rest=sh(uniq(pool).filter(x=>x!==correct));
+    const arr=sh([correct,...rest.slice(0,Math.max(0,count-1))]);
+    return {o:arr,a:arr.indexOf(correct)}
+  }
+  function base(level,idx,type,skill){return {id:`${level}-${type}-${idx}`,subject:level==='c4'?'CET-4':'CET-6',difficulty:diffBy(idx),type,skill,source:`月序仿真 ${level==='c4'?'CET-4':'CET-6'} · 按真题结构原创 · 非真题`}}
+
+  const THEMES4=[
+    '合理使用手机','大学生时间管理','校园志愿服务','绿色校园','坚持体育锻炼','提升英语沟通能力','图书馆学习空间','大学生兼职','保持规律作息','团队合作','减少食物浪费','公共交通','数字学习工具','实习与课堂学习','阅读习惯','大学生独立生活'
+  ];
+  const THEMES6=[
+    '人工智能与大学学习','终身学习的重要性','城市公共空间','数字隐私','可持续消费','远程协作','信息过载','社会信任','跨文化沟通','青年就业能力','科技与注意力','公共文化服务','低碳生活方式','创新与风险','社区韧性','教育公平'
+  ];
+  function writingBank(level,themes){
+    const out=[];let n=0;
+    themes.forEach((t,i)=>{
+      const prompts=[
+        `Suppose your university newspaper is inviting students to write an essay on “${t}”. Write an essay to express your view.`,
+        `Your university is discussing how to improve students’ experience related to “${t}”. Write an essay explaining the problem and giving your suggestions.`,
+        `A recent campus discussion has focused on “${t}”. Write an essay stating your position and supporting it with reasons or examples.`
+      ];
+      prompts.forEach((p,j)=>out.push({...base(level,n++,'writing','writing'),q:`Writing\n\n${p}\n\n要求：不少于 120 词；观点明确，结构完整。`,manual:true,reference:`参考结构：\n1. 开头明确回应主题；\n2. 主体给出 2–3 个理由或例子；\n3. 结尾总结观点或提出建议。\n\n这是一道开放写作题，没有唯一答案。`,e:'写作按内容、组织、语言和准确性自评；不要把参考结构当成唯一范文。'}));
+    });return out
+  }
+
+  const FACTS4=[
+    ['university library','extended its weekend opening hours','students needed more quiet study space during the exam period','weekend attendance increased noticeably','the number of borrowed books changed very little'],
+    ['city bus company','added an express route between the railway station and the university','passengers had complained about long transfers','average travel time was reduced by about fifteen minutes','the regular route continued to operate'],
+    ['campus cafeteria','introduced a discount for students who brought reusable cups','the school wanted to reduce disposable waste','the use of paper cups fell within two months','drink sales remained almost unchanged'],
+    ['student health center','opened an online appointment system','students often waited too long at busy hours','waiting time at the front desk became shorter','walk-in emergency service was kept'],
+    ['local museum','made admission free on Friday evenings','it wanted to attract more young visitors','attendance among college students rose','weekday daytime hours did not change'],
+    ['university career office','started short interview workshops','many final-year students felt nervous about interviews','more students booked one-to-one practice sessions','the workshops were optional'],
+    ['community center','set up a weekend repair cafe','residents wanted to reuse broken household items','volunteers repaired many small appliances','the service did not accept large furniture'],
+    ['campus bookstore','began lending course readers for two weeks','some students found textbooks expensive','the most popular readers were reserved quickly','students still had to buy workbooks'],
+    ['railway operator','added late-evening trains on Fridays','weekend passenger numbers had increased','crowding on the last train was reduced','ticket prices stayed the same'],
+    ['university sports center','opened an early-morning swimming session','students asked for more flexible exercise times','morning attendance was higher than expected','the evening schedule was unchanged'],
+    ['city park','created a separate cycling path','pedestrians had reported frequent conflicts with cyclists','minor accidents decreased','the walking path remained open'],
+    ['campus IT office','introduced self-service password reset','too many students had to visit the help desk for simple account problems','routine support requests fell','complex technical issues still required staff help'],
+    ['public library','started a quiet-hour policy in one reading room','users wanted a place without phone calls','complaints about noise dropped','group discussion rooms remained available'],
+    ['student union','organized a second-hand book market','students wanted a cheaper way to obtain course materials','hundreds of books changed hands','sellers set their own prices'],
+    ['local supermarket','marked food close to its sell-by date with larger discounts','the store hoped to reduce food waste','more near-date products were sold','food-safety rules were not changed'],
+    ['university language center','created weekly conversation tables','learners wanted more chances to speak English outside class','attendance grew steadily','students did not receive course credit']
+  ];
+  const FACTS6=[
+    ['regional university network','shared expensive laboratory equipment across several campuses','smaller departments could not afford every instrument independently','equipment use became more efficient','researchers still had to reserve time in advance'],
+    ['city government','published real-time data on bus crowding','passengers wanted to plan less crowded journeys','some riders shifted their travel times','overall passenger numbers remained stable'],
+    ['research team','tested shorter but more frequent study sessions','long study periods often led to declining attention','participants remembered more material a week later','total study time was kept similar'],
+    ['public hospital','introduced remote follow-up visits for selected patients','many routine visits did not require physical examination','travel time for patients was reduced','first-time diagnoses still required in-person assessment'],
+    ['university consortium','created a common digital archive','rare documents were scattered across separate libraries','researchers could locate materials more quickly','original documents remained at their home institutions'],
+    ['manufacturing company','allowed teams to redesign routine meetings','employees reported that meetings interrupted focused work','meeting hours fell while output stayed stable','safety briefings remained mandatory'],
+    ['municipal library system','removed overdue fines for children’s books','fines had discouraged some families from returning','more long-overdue books came back','replacement charges for lost books remained'],
+    ['energy provider','offered households hourly electricity-use reports','customers rarely knew which appliances used the most power','participants reduced peak-time consumption','electricity prices did not change during the trial'],
+    ['university department','made lecture recordings available after class','students requested a way to review difficult material','recordings were heavily used before exams','live attendance declined only slightly'],
+    ['local council','converted several parking spaces into small public seating areas','the district lacked places for pedestrians to rest','foot traffic near nearby shops increased','delivery access was preserved'],
+    ['technology firm','tested a four-day workweek without cutting pay','staff reported burnout and too many routine meetings','reported stress fell while output remained stable','customer-support coverage was reorganized'],
+    ['research journal','asked authors to share data when possible','reviewers wanted greater transparency and reproducibility','more studies included reusable datasets','exceptions were allowed for privacy-sensitive data'],
+    ['university residence','installed real-time water-use displays','students had little idea how much water daily habits consumed','average shower time fell','residents were not charged individually'],
+    ['city bike-share program','moved bicycles toward stations with morning shortages','commuters often found empty stations near transit hubs','availability improved during peak hours','the number of bicycles in the system did not increase'],
+    ['community college','offered evening childcare during selected classes','parents had cited childcare as a barrier to attendance','course completion among participating parents improved','the service covered only scheduled class hours'],
+    ['public broadcaster','released short explainers alongside long investigative reports','younger audiences often discovered news through brief formats','more users went on to read the full reports','the long reports were not shortened']
+  ];
+  const REASON_POOL4=FACTS4.map(x=>x[2]), RESULT_POOL4=FACTS4.map(x=>x[3]), OTHER_POOL4=FACTS4.map(x=>x[4]);
+  const REASON_POOL6=FACTS6.map(x=>x[2]), RESULT_POOL6=FACTS6.map(x=>x[3]), OTHER_POOL6=FACTS6.map(x=>x[4]);
+  function newsListening(level,data){
+    const out=[];let n=0;const rp=level==='c4'?REASON_POOL4:REASON_POOL6, xp=level==='c4'?RESULT_POOL4:RESULT_POOL6, op=level==='c4'?OTHER_POOL4:OTHER_POOL6;
+    data.forEach((x,i)=>{
+      const [org,action,reason,result,other]=x;
+      const body=`${org} has ${action}. Officials said the change was introduced because ${reason}. Early results show that ${result}. At the same time, ${other}.`;
+      const qs=[
+        [`Why was the change introduced?`,reason,rp],
+        [`What happened after the change?`,result,xp],
+        [`What else does the report say?`,other,op]
+      ];
+      qs.forEach((qq,j)=>{const z=opts(qq[1],qq[2]);out.push({...base(level,n++,'listeningChoice','listening'),listeningKind:level==='c4'?'短篇新闻':'报道/讲座',q:`Listening Comprehension · ${level==='c4'?'Short News':'Report'}\n\n播放录音，听完最后的问题后选择最佳答案。`,script:`${body} Question: ${qq[0]}`,o:z.o,a:z.a,e:`正确答案：${String.fromCharCode(65+z.a)}\n题目：${qq[0]}\n录音原文：${body}`})})
+    });return out
+  }
+
+  const D4=[
+    ['Mia','Daniel','missed the morning train','take the 10:20 train instead','the next train is direct','10:20'],
+    ['Lena','Mark','cannot attend Friday’s study group','join the Saturday session','she has a work shift on Friday','Saturday morning'],
+    ['Amy','Jack','needs a quieter place to prepare a presentation','reserve a small library room','the cafe is too noisy','the second floor'],
+    ['Nora','Eric','received the wrong size jacket','exchange it at the store','the receipt is still valid','before Sunday'],
+    ['Lucy','Ben','is unsure which elective to take','visit the course adviser','the two classes overlap','Wednesday afternoon'],
+    ['Sara','Tom','forgot to print a report','use the copy center near the library','the office printer is out of paper','before the 2 p.m. meeting'],
+    ['Emma','Ryan','wants to save money on lunch','prepare food at home','campus meals have become expensive','three days a week'],
+    ['Grace','Leo','needs to get to the airport early','book the first airport bus','a taxi would cost too much','5:40 a.m.'],
+    ['Ivy','Sam','cannot find a textbook in the bookstore','borrow the library copy first','a new shipment arrives next week','for seven days'],
+    ['Kate','Noah','has trouble sleeping before exams','stop drinking coffee after lunch','she studies late every night','for the next week'],
+    ['Jane','Mike','needs volunteers for a campus event','post the notice in the student group','email responses have been slow','this evening'],
+    ['Rose','Alex','is worried about a phone battery during a trip','bring a power bank','the train has limited charging sockets','before leaving home']
+  ];
+  const D6=[
+    ['A researcher','a project manager','survey participation is lower than expected','shorten the questionnaire and send one reminder','participants may be tired of repeated emails','before the next recruitment round'],
+    ['A lecturer','a department chair','students rarely speak in large seminars','use smaller discussion groups before whole-class discussion','students need time to organize their ideas','from next week'],
+    ['An editor','an author','the article makes a strong claim with limited evidence','narrow the claim and add supporting data','the conclusion currently goes beyond the results','before resubmission'],
+    ['A planner','a transport analyst','a new bus route is still unreliable','give buses priority at two busy intersections','adding more buses alone will not solve traffic delays','during the autumn trial'],
+    ['A librarian','a faculty member','students cannot find archived materials easily','improve metadata rather than scan everything again','the files already exist but are poorly indexed','this semester'],
+    ['A team leader','a software engineer','too many notifications interrupt focused work','set two fixed times for routine messages','not every message requires an immediate reply','for a two-week experiment'],
+    ['A museum curator','an education officer','visitors spend little time with complex exhibits','add short entry explanations with optional deeper material','long labels can discourage casual visitors','before the new exhibition opens'],
+    ['A researcher','an ethics officer','a dataset contains sensitive personal information','share an anonymized version with restricted access','full public release could harm participants','after privacy review'],
+    ['A supervisor','an intern','the weekly report takes too long to prepare','remove duplicated figures and keep a short summary','most readers only use the key indicators','starting this Friday'],
+    ['A professor','a graduate student','the literature review lists studies without comparing them','organize the review around competing explanations','a review should show relationships among findings','in the next draft'],
+    ['A city official','a shop owner','street construction is reducing foot traffic','improve temporary signs and pedestrian access','customers think the street is completely closed','before the weekend'],
+    ['A health researcher','a clinic manager','follow-up appointments are taking too much staff time','move routine check-ins online for suitable patients','many visits involve no physical examination','during a three-month pilot']
+  ];
+  function dialogueListening(level,data){
+    const out=[];let n=500;
+    const problems=data.map(x=>x[2]), decisions=data.map(x=>x[3]), reasons=data.map(x=>x[4]), times=data.map(x=>x[5]);
+    data.forEach((x,i)=>{
+      const [a,b,problem,decision,reason,time]=x;
+      const body=`${a}: I need some advice. I ${problem}. ${b}: In that case, I think you should ${decision}. ${a}: Why do you suggest that? ${b}: Mainly because ${reason}. ${a}: All right. I will do that ${time}.`;
+      [[`What problem does the first speaker have?`,problem,problems],[`What do the speakers decide to do?`,decision,decisions],[`Why is that solution suggested?`,reason,reasons]].forEach((qq,j)=>{const z=opts(qq[1],qq[2]);out.push({...base(level,n++,'listeningChoice','listening'),listeningKind:'长对话',q:`Listening Comprehension · Long Conversation\n\n播放录音，听完最后的问题后选择最佳答案。`,script:`${body} Question: ${qq[0]}`,o:z.o,a:z.a,e:`正确答案：${String.fromCharCode(65+z.a)}\n题目：${qq[0]}\n录音原文：${body}`})})
+    });return out
+  }
+
+  const P4=[
+    ['active recall','testing yourself without looking at the answer','it forces the brain to retrieve information','it often feels harder than rereading','use short self-tests after study sessions'],
+    ['sleep and learning','getting enough sleep after studying','sleep helps stabilize newly learned information','late-night cramming can reduce attention the next day','finish difficult study earlier when possible'],
+    ['walking meetings','holding some small meetings while walking','light movement can make informal discussion feel easier','they are not suitable for detailed note-taking','use them for brainstorming rather than formal decisions'],
+    ['reusable containers','bringing your own food container','it reduces single-use packaging','the habit is easier when containers are kept near the door','prepare the container the night before'],
+    ['public libraries','using libraries as community spaces','they provide quiet study, information and public activities','their role now goes beyond lending books','check local events as well as the book collection'],
+    ['short study plans','choosing a few important tasks each day','a shorter list makes priorities clearer','very long lists can create the illusion of progress','identify the three tasks that matter most'],
+    ['phone notifications','turning off nonessential alerts','fewer interruptions help people stay focused','people often underestimate how long it takes to refocus','keep only genuinely urgent alerts'],
+    ['campus volunteering','joining a regular service activity','repeated participation helps volunteers learn local needs','one-time events can still help but provide less continuity','choose a schedule you can maintain'],
+    ['language input','reading and listening to understandable English often','frequent exposure helps learners notice common patterns','materials that are far too difficult can be discouraging','choose content slightly above your current level'],
+    ['meal planning','deciding several meals before shopping','planning can reduce unnecessary purchases','hungry shoppers may buy more than they need','make a short list before going to the store'],
+    ['study breaks','taking brief breaks during long tasks','short breaks can restore attention','breaks become harmful when they turn into long distractions','set a clear return time'],
+    ['asking questions','writing down specific questions while studying','specific questions reveal exactly what is unclear','saying only “I do not understand” gives little direction','mark the sentence or step that caused confusion']
+  ];
+  const P6=[
+    ['information overload','limiting the number of sources used for one task','too many competing inputs can increase decision fatigue','more information is not always the same as better understanding','define the decision before collecting more material'],
+    ['algorithmic recommendations','treating recommendations as suggestions rather than neutral rankings','systems optimize for particular goals that users may not see','highly personalized feeds can narrow exposure','occasionally seek information outside the recommended stream'],
+    ['urban shade','adding trees and shade structures to hot streets','shade can lower surface temperatures and improve walking comfort','benefits depend on maintenance and local climate','combine planting with long-term care plans'],
+    ['remote collaboration','making decisions explicit in shared documents','written records reduce confusion across time zones','informal verbal agreements are easily lost','record responsibilities and deadlines after meetings'],
+    ['public data','publishing data with explanations and limitations','raw numbers can be misunderstood without context','transparency requires both access and interpretation','describe how the data were collected'],
+    ['research replication','repeating studies under similar conditions','replication tests whether findings are robust','a single successful study does not settle every question','value careful confirmation as well as novelty'],
+    ['sustainable consumption','using products longer before replacing them','longer use can reduce demand for new materials','marketing often encourages replacement before necessity','consider repair and maintenance first'],
+    ['attention at work','protecting blocks of uninterrupted time','complex tasks often require sustained concentration','constant switching creates hidden cognitive costs','group routine communication into fewer periods'],
+    ['community trust','maintaining reliable small public services','repeated dependable experiences can strengthen confidence','trust is shaped by everyday interactions as well as major events','focus on consistency, not only publicity'],
+    ['digital archives','preserving file formats and metadata over time','digital storage alone does not guarantee future access','files can become unreadable when formats or context disappear','plan for migration and documentation'],
+    ['learning transfer','practicing a skill in varied contexts','variation helps learners recognize when knowledge applies','memorizing one exact example may not transfer well','mix familiar practice with new situations'],
+    ['risk communication','explaining both what is known and what remains uncertain','overconfident messages can damage trust when facts change','uncertainty does not mean that nothing is known','state the strongest evidence and its limits']
+  ];
+  function passageListening(level,data){
+    const out=[];let n=900;
+    const topics=data.map(x=>x[0]), points=data.map(x=>x[1]), whys=data.map(x=>x[2]), cautions=data.map(x=>x[3]);
+    data.forEach((x,i)=>{
+      const [topic,point,why,caution,advice]=x;const body=`Today's short talk is about ${topic}. One useful approach is ${point}. This matters because ${why}. However, ${caution}. A practical suggestion is to ${advice}.`;
+      [[`What is the main point of the talk?`,point,points],[`Why does the speaker say this approach matters?`,why,whys],[`What caution does the speaker mention?`,caution,cautions]].forEach(qq=>{const z=opts(qq[1],qq[2]);out.push({...base(level,n++,'listeningChoice','listening'),listeningKind:level==='c4'?'听力篇章':'讲话/报道/讲座',q:`Listening Comprehension · ${level==='c4'?'Passage':'Talk / Lecture'}\n\n播放录音，听完最后的问题后选择最佳答案。`,script:`${body} Question: ${qq[0]}`,o:z.o,a:z.a,e:`正确答案：${String.fromCharCode(65+z.a)}\n题目：${qq[0]}\n录音原文：${body}`})})
+    });return out
+  }
+
+  const WB4=[
+    ['effective','有效的','The university introduced a more ___ system for booking study rooms.'],['available','可获得的','More digital materials are now ___ to students off campus.'],['reduce','减少','The campaign aims to ___ unnecessary food waste.'],['maintain','保持','Regular breaks can help people ___ concentration.'],['participate','参加','More students chose to ___ in the weekend project.'],['significant','显著的','The survey found a ___ difference between the two groups.'],['adapt','适应','New employees often need time to ___ to a different schedule.'],['confirm','确认','Please ___ your appointment before Friday.'],['approach','方法','The team tried a different ___ to the problem.'],['benefit','受益','Both students and teachers may ___ from clearer instructions.'],['prevent','防止','Simple checks can ___ many common mistakes.'],['consume','消耗','Heating systems can ___ a large amount of energy.'],['frequent','频繁的','___ interruptions make complex work more difficult.'],['evidence','证据','There is not enough ___ to support the claim.'],['expand','扩大','The library plans to ___ its weekend services.'],['efficient','高效的','The new process is faster and more ___.'],['require','需要','The course will ___ about five hours of study each week.'],['respond','回应','Students were asked to ___ to the survey by Monday.'],['potential','潜在的','The idea has ___ value but needs further testing.'],['generate','产生','The new event may ___ more interest in volunteering.'],['access','使用权','All registered students have ___ to the online archive.'],['accurate','准确的','The report provides ___ information about train times.'],['emphasize','强调','The speaker chose to ___ the importance of preparation.'],['occur','发生','Most errors ___ when people are tired or rushed.']
+  ];
+  const WB6=[
+    ['allocate','分配','The committee must ___ limited funds among several projects.'],['ambiguous','模糊的','The instructions were too ___ to guide consistent decisions.'],['coherent','连贯的','A strong argument should remain ___ from beginning to end.'],['constrain','限制','Limited time can ___ the range of methods researchers use.'],['controversial','有争议的','The proposal remains ___ because its long-term effects are uncertain.'],['cumulative','累积的','Small daily choices can have a ___ effect over many years.'],['derive','获得','Researchers may ___ useful insights from carefully collected data.'],['diminish','减弱','Repeated interruptions can ___ the quality of concentrated work.'],['empirical','实证的','The claim needs stronger ___ support before it is accepted.'],['feasible','可行的','The plan is technically ___ but may be too expensive.'],['framework','框架','The report proposes a new ___ for evaluating public projects.'],['implement','实施','The city plans to ___ the policy in three stages.'],['incentive','激励','A small discount can provide an ___ for customers to reuse containers.'],['inevitable','不可避免的','Change is not always ___; policy choices can shape outcomes.'],['integrate','整合','The course aims to ___ theory with practical experience.'],['interpret','解释','Readers should ___ the figures in light of the study’s limitations.'],['justify','证明合理','The evidence is not sufficient to ___ such a broad conclusion.'],['preliminary','初步的','These are only ___ results and may change after more data are collected.'],['reinforce','加强','Repeated practice can ___ newly learned patterns.'],['retain','保留','The new design will ___ the building’s original structure.'],['subsequent','随后的','A ___ study produced similar results.'],['sustain','维持','It is difficult to ___ attention when notifications arrive constantly.'],['underlying','根本的','The report examines the ___ causes of the decline.'],['valid','有效的','The conclusion is only ___ if the sample represents the wider population.']
+  ];
+  function wordBank(level,rows){
+    const all=rows.map(x=>x[0]);return rows.map((r,i)=>{const [w,zh,s]=r;const bank=opts(w,all,8);return {...base(level,i,'wordBank','wordbank'),q:`Reading Comprehension · Banked Cloze\n\n${s}\n\n从词库中选择最合适的词填入空格。`,o:bank.o,a:bank.a,e:`正确答案：${w}（${zh}）`}})
+  }
+
+  const MATCH4=[
+    ['A. The library’s first floor is designed for group discussion and allows normal conversation.','B. The second floor is a silent study area where phone calls are not permitted.','C. The media room provides computers and headphones for language practice.','D. The help desk near the entrance assists with accounts, printing and reservations.','Students who need to practise listening with headphones should go here.','C'],
+    ['A. The campus clinic handles urgent minor injuries during daytime hours.','B. Routine appointments can be booked online several days in advance.','C. Mental-health consultations are offered in a separate counselling center.','D. Vaccination records can be downloaded from the student health portal.','A student who needs a copy of an existing vaccination record should use this service.','D'],
+    ['A. The morning bus runs every 15 minutes but stops at every station.','B. The express bus runs twice an hour and goes directly to the city center.','C. The night bus starts after 11 p.m. and follows a longer route.','D. The campus shuttle operates only between university buildings.','Someone travelling straight to the city center with little luggage may prefer this option.','B'],
+    ['A. The writing center helps students organize essays and revise drafts.','B. The speaking club offers informal conversation practice.','C. The language lab provides pronunciation software and recorded exercises.','D. The test office deals with exam registration and score reports.','A student who wants feedback on the structure of an essay should choose this service.','A'],
+    ['A. The reuse station accepts clean notebooks, folders and small office supplies.','B. The electronics desk collects old batteries and broken chargers.','C. The clothing corner exchanges clean clothes in good condition.','D. The repair table helps fix bicycles on Thursday afternoons.','A student with an unwanted but usable jacket should go here.','C'],
+    ['A. The museum entrance hall contains a short introduction to the collection.','B. Gallery Two focuses on local history and everyday objects.','C. Gallery Three presents temporary exhibitions by young artists.','D. The roof garden is open only in good weather.','Visitors interested in recently produced art should visit this area.','C'],
+    ['A. The first workshop explains how to search academic databases.','B. The second workshop focuses on citing sources correctly.','C. The third workshop teaches basic presentation design.','D. The final workshop is about preparing for interviews.','Someone worried about accidental plagiarism would benefit most from this workshop.','B'],
+    ['A. The east gate closes at 10 p.m. every day.','B. The south gate remains open all night for residents.','C. The north gate is for deliveries before noon.','D. The west gate is temporarily closed for construction.','A student returning to campus after midnight should use this gate.','B']
+  ];
+  const MATCH6=[
+    ['A. One proposal emphasizes making raw public data easier to download.','B. Another argues that data should be accompanied by explanations of uncertainty and collection methods.','C. A third focuses on protecting personal information before release.','D. The final proposal recommends independent audits of important datasets.','This proposal is most concerned with helping users understand the limits of the numbers they see.','B'],
+    ['A. Some researchers study whether a result can be reproduced with the same method.','B. Others test whether the result still appears in a different population.','C. A third group examines whether alternative explanations fit the data better.','D. Another approach combines results from many previous studies.','This approach asks whether a finding extends beyond the original participants.','B'],
+    ['A. One city strategy increases the number of buses on existing routes.','B. Another gives buses priority at busy intersections.','C. A third lowers fares during off-peak hours.','D. The fourth adds real-time crowding information to travel apps.','This strategy directly changes how buses move through traffic.','B'],
+    ['A. One workplace policy protects two meeting-free mornings each week.','B. Another requires employees to answer messages within ten minutes.','C. A third replaces all written updates with meetings.','D. A fourth asks every team to use the same working hours across time zones.','This policy is designed to create longer periods of uninterrupted concentration.','A'],
+    ['A. One library project digitizes fragile documents.','B. Another improves descriptions and search terms for files that are already digital.','C. A third moves physical materials to climate-controlled storage.','D. A fourth trains researchers to handle original documents safely.','This project addresses the problem of digital materials being difficult to discover.','B'],
+    ['A. One climate measure improves building insulation.','B. Another creates shaded walking routes.','C. A third changes waste-collection schedules.','D. A fourth subsidizes electric delivery vehicles.','This measure most directly improves pedestrian comfort during very hot weather.','B'],
+    ['A. One course uses the same example repeatedly until students memorize it.','B. Another varies examples while keeping the underlying principle the same.','C. A third removes practice and gives only explanations.','D. A fourth tests only definitions.','This design is most likely to support transfer of learning to unfamiliar situations.','B'],
+    ['A. One news format gives readers only a headline.','B. Another provides a short summary linked to a longer investigation.','C. A third removes sources to make the story shorter.','D. A fourth automatically hides information that challenges previous reading habits.','This format tries to combine quick access with the option of deeper reading.','B']
+  ];
+  function matching(level,groups){
+    const letters=['A','B','C','D'];return groups.map((g,i)=>{
+      const paras=g.slice(0,4),statement=g[4],ans=g[5],a=letters.indexOf(ans);
+      return {...base(level,i,'matching','matching'),q:`Reading Comprehension · Long Matching\n\n${paras.join('\n\n')}\n\nStatement: ${statement}`,o:letters.map(x=>`Paragraph ${x}`),a,e:`正确匹配：${ans}`}
+    })
+  }
+
+  function factReading(level,data){
+    const out=[];let n=300;const reasons=data.map(x=>x[2]),results=data.map(x=>x[3]),others=data.map(x=>x[4]);
+    data.forEach(x=>{const [org,action,reason,result,other]=x;const text=`${org} recently ${action}. The change was made because ${reason}. After it was introduced, ${result}. Meanwhile, ${other}.`;
+      [[`Why was the change made?`,reason,reasons],[`What happened after the change?`,result,results],[`What remained true at the same time?`,other,others]].forEach(q=>{const z=opts(q[1],q[2]);out.push({...base(level,n++,'reading','reading'),q:`Reading Comprehension · Careful Reading\n\n${text}\n\n${q[0]}`,o:z.o,a:z.a,e:`正确答案：${String.fromCharCode(65+z.a)}\n${q[1]}`})})
+    });return out
+  }
+
+  function careful(level,data){
+    const out=[];let n=0;const topics=data.map(x=>x[0]);
+    data.forEach((x,i)=>{
+      const [topic,point,why,caution,advice]=x;
+      const text=`A growing amount of attention has been given to ${topic}. One practical approach is ${point}. Supporters argue that ${why}. However, the approach also has limits: ${caution}. For this reason, a more balanced recommendation is to ${advice}.`;
+      const questions=[
+        ['What is the passage mainly about?',`a practical way to deal with ${topic}`,topics.map(t=>`the history of ${t}`)],
+        ['Why do supporters favor the approach?',why,data.map(y=>y[2])],
+        ['What does the author recommend?',advice,data.map(y=>y[4])]
+      ];
+      questions.forEach((q,j)=>{const z=opts(q[1],q[2]);out.push({...base(level,n++,'reading','reading'),q:`Reading Comprehension · Careful Reading\n\n${text}\n\n${q[0]}`,o:z.o,a:z.a,e:`正确答案：${String.fromCharCode(65+z.a)}\n${q[0]} → ${q[1]}`})})
+    });return out
+  }
+
+  const TRANS4=[
+    ['越来越多的大学生开始利用公共图书馆和线上资源学习。图书馆不仅提供书籍，也提供安静的学习空间、数字资料和各种讲座。合理利用这些资源可以帮助学生提高学习效率。','More and more university students are using public libraries and online resources for study. Libraries provide not only books, but also quiet study spaces, digital materials and various lectures. Making good use of these resources can help students study more efficiently.'],
+    ['在许多城市，公共交通正在变得更加方便。地铁、公交车和共享单车为人们提供了不同的出行选择。越来越多的人愿意减少开车次数，以节省时间并降低出行成本。','In many cities, public transportation is becoming more convenient. Subways, buses and shared bicycles provide people with different travel choices. More people are willing to drive less in order to save time and reduce travel costs.'],
+    ['志愿服务是大学生活的重要组成部分。学生可以在社区、博物馆或大型活动中担任志愿者。通过这些经历，他们不仅帮助了别人，也能提高沟通能力并更好地了解社会。','Volunteer service is an important part of university life. Students can volunteer in communities, museums or large events. Through these experiences, they not only help others but also improve their communication skills and gain a better understanding of society.'],
+    ['随着数字技术的发展，越来越多的学习材料可以在手机或电脑上获得。在线课程给学生提供了更多选择，但学生仍然需要合理安排时间，避免被无关信息分散注意力。','With the development of digital technology, more and more learning materials are available on phones or computers. Online courses give students more choices, but students still need to manage their time well and avoid being distracted by irrelevant information.'],
+    ['中国许多传统节日都与家庭团聚有关。节日期间，人们会准备特别的食物、拜访亲友，并参加各种传统活动。虽然庆祝方式不断变化，但人们仍然重视节日所表达的情感。','Many traditional Chinese festivals are connected with family reunions. During these festivals, people prepare special food, visit relatives and friends, and take part in traditional activities. Although ways of celebration continue to change, people still value the feelings expressed by these festivals.'],
+    ['近年来，越来越多的人开始关注健康的生活方式。规律运动、充足睡眠和均衡饮食都很重要。对大学生来说，养成长期可以坚持的小习惯通常比短期改变更有效。','In recent years, more people have begun to pay attention to a healthy lifestyle. Regular exercise, enough sleep and a balanced diet are all important. For university students, small habits that can be maintained over time are usually more effective than short-term changes.'],
+    ['许多大学鼓励学生参加实习。实习让学生有机会了解真实的工作环境，并把课堂上学到的知识应用到实际任务中。同时，学生也能更清楚地认识自己的兴趣和不足。','Many universities encourage students to take internships. Internships give students opportunities to understand real working environments and apply classroom knowledge to practical tasks. At the same time, students can gain a clearer understanding of their interests and weaknesses.'],
+    ['近年来，一些城市增加了公园、步行道和公共休息空间。这些地方不仅方便居民锻炼和休息，也为社区交流提供了更多机会。良好的公共空间可以提高城市生活的舒适度。','In recent years, some cities have added parks, walking paths and public resting spaces. These places not only make it easier for residents to exercise and relax, but also provide more opportunities for community interaction. Good public spaces can make urban life more comfortable.']
+  ];
+  const TRANS6=[
+    ['随着人工智能工具进入学习和工作场景，人们越来越重视如何合理使用这些工具。技术可以提高效率，但如果使用者不了解其局限，也可能产生错误判断。因此，培养信息判断能力和责任意识变得更加重要。','As artificial intelligence tools enter study and work settings, people are paying more attention to how these tools should be used properly. Technology can improve efficiency, but it may also lead to wrong judgments if users do not understand its limitations. Therefore, the ability to evaluate information and a sense of responsibility are becoming increasingly important.'],
+    ['在快速变化的就业市场中，仅掌握一项固定技能往往是不够的。越来越多的人通过短期课程、线上资源和工作实践持续学习。终身学习不仅有助于适应职业变化，也能帮助个人发现新的发展方向。','In a rapidly changing job market, mastering only one fixed skill is often not enough. More people continue learning through short courses, online resources and practical work experience. Lifelong learning not only helps people adapt to career changes, but also enables them to discover new directions for development.'],
+    ['城市公共空间的设计会影响人们的日常生活。安全的人行道、足够的树荫和方便的公共交通可以提高步行意愿，也能增加居民之间自然交流的机会。因此，城市规划越来越重视人的实际体验。','The design of urban public spaces affects people’s daily lives. Safe sidewalks, sufficient shade and convenient public transportation can encourage walking and create more opportunities for natural interaction among residents. Therefore, urban planning is paying increasing attention to people’s actual experience.'],
+    ['数字平台为人们获取信息提供了便利，但算法推荐也可能让用户长期接触相似内容。为了形成更全面的判断，人们需要主动比较不同来源，并区分事实、观点和未经证实的信息。','Digital platforms make it convenient for people to obtain information, but algorithmic recommendations may also expose users to similar content for long periods. To form more balanced judgments, people need to compare different sources actively and distinguish facts, opinions and unverified information.'],
+    ['可持续消费并不只是购买所谓的环保产品。延长物品使用时间、维修而不是立即更换，以及减少不必要的购买，都可以降低资源消耗。真正有效的改变往往来自长期稳定的生活习惯。','Sustainable consumption is not simply about buying so-called environmentally friendly products. Using products for longer, repairing them instead of replacing them immediately, and reducing unnecessary purchases can all lower resource consumption. Truly effective change often comes from stable long-term habits.'],
+    ['远程协作使不同城市甚至不同国家的人能够共同完成项目，但它也增加了沟通上的挑战。明确记录任务、负责人和截止时间，可以减少信息遗漏，并帮助团队在不同时间安排下保持协作。','Remote collaboration enables people in different cities or even different countries to work on the same project, but it also creates communication challenges. Clearly recording tasks, responsibilities and deadlines can reduce information loss and help teams cooperate across different schedules.'],
+    ['公共数据的开放可以提高透明度，也能为研究和公共服务提供新的资源。然而，只有数据而没有背景说明可能导致误解。因此，在开放数据的同时解释数据来源、范围和局限同样重要。','Open public data can improve transparency and provide new resources for research and public services. However, data without contextual explanation may lead to misunderstanding. Therefore, it is equally important to explain the source, scope and limitations of data when making it available.'],
+    ['在教育中，记住知识并不等于能够灵活运用知识。学习者需要在不同情境中练习同一原理，并尝试解释为什么某种方法有效。这样的练习更有助于把知识迁移到新的问题中。','In education, remembering knowledge is not the same as being able to use it flexibly. Learners need to practise the same principle in different contexts and try to explain why a method works. Such practice is more helpful for transferring knowledge to new problems.']
+  ];
+  function translation(level,rows){
+    return rows.map((x,i)=>({...base(level,i,'translation','translation'),q:`Translation\n\n将下面一段中文翻译成英语：\n\n${x[0]}`,manual:true,reference:x[1],e:`参考译文：\n${x[1]}\n\n翻译题允许多种正确表达，重点检查信息是否完整、语法是否准确、表达是否自然。`}))
+  }
+
+  function build(level){
+    const facts=level==='c4'?FACTS4:FACTS6, dialogs=level==='c4'?D4:D6, pass=level==='c4'?P4:P6, wb=level==='c4'?WB4:WB6, match=level==='c4'?MATCH4:MATCH6, themes=level==='c4'?THEMES4:THEMES6, trans=level==='c4'?TRANS4:TRANS6;
+    const writing=writingBank(level,themes);
+    const listening=[...newsListening(level,facts),...dialogueListening(level,dialogs),...passageListening(level,pass)];
+    const reading=[...wordBank(level,wb),...matching(level,match),...factReading(level,facts),...careful(level,pass)];
+    const tran=translation(level,trans);
+    return {writing,listening,reading,tran,all:[...writing,...listening,...reading,...tran]}
+  }
+  const B4=build('c4'),B6=build('c6');
+
+  function installBanks(prefix,B){
+    BUILTIN_PRACTICE_BANKS[prefix+'offline']={name:`${prefix==='cet4'?'CET-4':'CET-6'} · 写作训练`,subject:prefix==='cet4'?'CET-4':'CET-6',questions:B.writing};
+    BUILTIN_PRACTICE_BANKS[prefix+'vocab']={name:`${prefix==='cet4'?'CET-4':'CET-6'} · 听力理解`,subject:prefix==='cet4'?'CET-4':'CET-6',questions:B.listening};
+    BUILTIN_PRACTICE_BANKS[prefix+'grammar']={name:`${prefix==='cet4'?'CET-4':'CET-6'} · 阅读理解`,subject:prefix==='cet4'?'CET-4':'CET-6',questions:B.reading};
+    BUILTIN_PRACTICE_BANKS[prefix+'reading']={name:`${prefix==='cet4'?'CET-4':'CET-6'} · 汉译英`,subject:prefix==='cet4'?'CET-4':'CET-6',questions:B.tran};
+    BUILTIN_PRACTICE_BANKS[prefix+'mix']={name:`${prefix==='cet4'?'CET-4':'CET-6'} · 真题结构智能随机`,subject:prefix==='cet4'?'CET-4':'CET-6',questions:B.all};
+  }
+  installBanks('cet4',B4);installBanks('cet6',B6);
+
+  function group(q){return q.skill==='wordbank'?'wordbank':q.skill}
+  function filtered(list){
+    let a=list.slice();const d=state.practice.cetDifficulty||'all',t=state.practice.cetType||'all';
+    if(d!=='all')a=a.filter(q=>q.difficulty===d);
+    if(t!=='all')a=a.filter(q=>group(q)===t);
+    return a
+  }
+  function adaptive(a){
+    const recent=new Set(state.practice.cetRecentIds||[]),weak=state.practice.cetWeakSkills||{};
+    return a.map(q=>({q,s:Math.random()*2+(weak[q.skill]||0)*.16-(recent.has(q.id)?1.5:0)})).sort((x,y)=>y.s-x.s).map(x=>x.q)
+  }
+  openBuiltinPractice=function(key,startIndex=0){
+    const bank=getBuiltinBank(key);if(!bank)return;let pool=bank.questions.slice();const isCet=/^cet[46]/.test(key);
+    if(isCet)pool=filtered(pool);if(!pool.length){toast('这个筛选组合暂时没有题，换一个难度或题型');return}
+    if(isCet)pool=adaptive(pool);const total=pool.length;if(isCet&&total>60)pool=pool.slice(0,60);
+    customQuizItems=pool.map((x,i)=>({...x,pack:bank.name,_originBank:key,_originIndex:i,_poolTotal:total}));customQuizIndex=Math.max(0,Math.min(Number(startIndex)||0,customQuizItems.length-1));
+    state.practice.lastNativeBank=key;state.practice.lastNativeIndex=customQuizIndex;save();$('customQuizScreen').classList.add('show');renderCustomQuiz();
+    toast(isCet?`本轮 ${customQuizItems.length} 题 · 从 ${total} 道真题结构训练中抽取`:`已打开 ${bank.name}`)
+  };
+
+  function stopSpeak(){try{speechSynthesis.cancel()}catch(_){}window.__cetSpeaking=false}
+  function play(q,btn){
+    if(!q.script)return;if(window.__cetSpeaking&&!speechSynthesis.paused){speechSynthesis.pause();btn.textContent='▶';return}
+    if(window.__cetSpeaking&&speechSynthesis.paused){speechSynthesis.resume();btn.textContent='Ⅱ';return}
+    stopSpeak();const u=new SpeechSynthesisUtterance(q.script);u.lang='en-US';u.rate=q.subject==='CET-6'?.93:.9;u.onend=()=>{window.__cetSpeaking=false;btn.textContent='▶'};u.onerror=()=>{window.__cetSpeaking=false;btn.textContent='▶'};window.__cetSpeaking=true;speechSynthesis.speak(u);btn.textContent='Ⅱ'
+  }
+  function feedback(t){const el=$('customQuizFeedback');el.textContent=t;el.classList.add('show')}
+  function logOnce(q,pick,correct){const key=practiceQuestionKey(q);if(customQuizAnsweredKey===key)return;customQuizAnsweredKey=key;logPracticeAnswer(q,pick,correct)}
+  renderCustomQuiz=function(){
+    stopSpeak();const q=customQuizItems[customQuizIndex];if(!q)return;customQuizAnsweredKey='';
+    $('customQuizTitle').textContent=q.pack||q.subject||'CET 训练';const total=q._poolTotal||customQuizItems.length;$('customQuizMeta').textContent=`${customQuizIndex+1} / ${customQuizItems.length}${total>customQuizItems.length?` · 池 ${total}`:''}`;
+    const badge=$('customQuizBadge');badge.className='quiz-source-badge multi-badge';badge.innerHTML=`<span class="quiz-mini-tag">${esc(q.subject)}</span><span class="quiz-mini-tag diff-${q.difficulty}">${LEVEL_LABEL[q.difficulty]}</span><span class="quiz-mini-tag">${TYPE_LABEL[q.type]||'真题结构'}</span>`;
+    $('customQuizQuestion').textContent=q.q;$('customQuizFeedback').classList.remove('show');$('customQuizFeedback').textContent='';const box=$('customQuizOptions');box.innerHTML='';
+    if(q.type==='listeningChoice'){
+      box.insertAdjacentHTML('beforeend',`<div class="exam-direction">和真题一样：题目在录音最后读出；页面只给选项。录音可暂停 / 继续，作答后再显示题目与原文。</div><div class="listen-quiz-box"><button id="cetQPlay">▶</button><div class="listen-quiz-copy"><b>${esc(q.listeningKind||'听力理解')}</b><span>先完整听一遍，再选 A–D</span></div><button class="listen-stop" id="cetQStop">■</button></div>`)
+    }
+    if((q.o||[]).length){
+      box.insertAdjacentHTML('beforeend',(q.o||[]).map((x,i)=>`<button class="quiz-option" data-custom-opt="${i}">${String.fromCharCode(65+i)}. ${esc(x)}</button>`).join(''));
+      box.querySelectorAll('[data-custom-opt]').forEach(b=>b.onclick=()=>{const p=+b.dataset.customOpt;box.querySelectorAll('[data-custom-opt]').forEach((x,i)=>{x.classList.toggle('selected',i===p);x.classList.toggle('correct',i===Number(q.a));x.classList.toggle('wrong',i===p&&i!==Number(q.a))});const ok=p===Number(q.a);feedback(`${ok?'✓ 对了':'✕ 选错了'}\n${q.e||''}`);logOnce(q,p,ok)})
+    }else if(q.manual){
+      box.insertAdjacentHTML('beforeend',`<div class="multi-answer-wrap"><textarea id="cetOpenAnswer" placeholder="先自己完成，再看参考。"></textarea><div class="multi-answer-actions"><button class="multi-reveal" id="cetRevealAnswer">看参考</button><button class="multi-submit" id="cetAskSelf">我写完了</button></div><div class="self-grade" id="cetSelfGrade"><button class="yes" data-self="yes">基本完成</button><button class="mid" data-self="mid">有点模糊</button><button class="no" data-self="no">不会 / 偏差大</button></div></div>`);
+      const reveal=()=>{feedback(q.e||q.reference||'');$('cetSelfGrade').classList.add('show')};$('cetRevealAnswer').onclick=reveal;$('cetAskSelf').onclick=reveal;document.querySelectorAll('[data-self]').forEach(b=>b.onclick=()=>{const v=b.dataset.self;logOnce(q,v,v==='yes');feedback(`${v==='yes'?'✓ 已记为完成':v==='mid'?'△ 已记为模糊':'✕ 已加入薄弱项'}\n${q.e||q.reference||''}`)})
+    }
+    const pb=$('cetQPlay'),sb=$('cetQStop');if(pb)pb.onclick=()=>play(q,pb);if(sb)sb.onclick=()=>{stopSpeak();if(pb)pb.textContent='▶'};
+    setAvatarEl($('customQuizCharAvatar'),state.wechat?.charAvatar||'','晏');$('customQuizComment').value='';$('customQuizCharReply').classList.remove('show');
+    const card=document.querySelector('#customQuizScreen .quiz-question-card');if(card)card.scrollTop=0
+  };
+  $('customQuizPrev').onclick=()=>{stopSpeak();if(!customQuizItems.length)return;customQuizIndex=(customQuizIndex-1+customQuizItems.length)%customQuizItems.length;renderCustomQuiz()};
+  $('customQuizNext').onclick=()=>{stopSpeak();if(!customQuizItems.length)return;customQuizIndex=(customQuizIndex+1)%customQuizItems.length;renderCustomQuiz()};
+  document.querySelector('#customQuizScreen .back')?.addEventListener('click',stopSpeak);
+
+  function rebuildFilters(){
+    document.querySelectorAll('.cet-filter-card').forEach(card=>{
+      card.innerHTML=`<div class="cet-filter-title"><b>难度</b><span>同一真题结构，材料难度逐档提高</span></div><div class="cet-chip-row">${[['all','智能混合'],['base','基础'],['cet4','标准'],['cet6','提高'],['challenge','挑战']].map(([k,v])=>`<button class="cet-chip ${state.practice.cetDifficulty===k?'active':''}" data-real-diff="${k}">${v}</button>`).join('')}</div><div class="cet-filter-title"><b>真题题型</b><span>只保留 CET 笔试真实结构</span></div><div class="cet-chip-row">${[['all','混合'],['writing','写作'],['listening','听力'],['wordbank','选词填空'],['matching','长篇匹配'],['reading','仔细阅读'],['translation','汉译英']].map(([k,v])=>`<button class="cet-chip ${state.practice.cetType===k?'active':''}" data-real-type="${k}">${v}</button>`).join('')}</div><div class="cet-pool-note">已删除拼写、同义词手输、语法改错、句子改写、英译汉等非 CET 笔试题型。原创训练只模仿真题结构，历年真题仍单独放在真题入口。</div>`
+    });
+    document.querySelectorAll('[data-real-diff]').forEach(b=>b.onclick=()=>{state.practice.cetDifficulty=b.dataset.realDiff;save();rebuildFilters();refreshLabels()});
+    document.querySelectorAll('[data-real-type]').forEach(b=>b.onclick=()=>{state.practice.cetType=b.dataset.realType;save();rebuildFilters();refreshLabels()})
+  }
+  const labels={
+    cet4offline:['写','写作训练'],cet4vocab:['听','听力理解'],cet4grammar:['读','阅读理解'],cet4reading:['译','汉译英'],cet4mix:['随','真题结构随机'],
+    cet6offline:['写','写作训练'],cet6vocab:['听','听力理解'],cet6grammar:['读','阅读理解'],cet6reading:['译','汉译英'],cet6mix:['随','真题结构随机']
+  };
+  function refreshLabels(){
+    Object.entries(labels).forEach(([k,[icon,name]])=>document.querySelectorAll(`[data-builtin-bank="${k}"]`).forEach(btn=>{const bank=BUILTIN_PRACTICE_BANKS[k],n=filtered(bank.questions).length;const i=btn.querySelector('i'),b=btn.querySelector('b'),sp=btn.querySelector('span'),sm=btn.querySelector('small');if(i)i.textContent=icon;if(b)b.textContent=name;if(sp)sp.textContent=`${n} 题可选`;if(sm)sm.textContent='按 CET 真题结构原创 · 非真题'}));
+    [['CET-4','cet4mix'],['CET-6','cet6mix']].forEach(([name,k])=>document.querySelectorAll('.cet-bank-head').forEach(h=>{if(h.querySelector('b')?.textContent===name){const n=filtered(BUILTIN_PRACTICE_BANKS[k].questions).length;h.querySelector('span').textContent=`当前筛选 ${n} 题 · 只保留真题题型`}}))
+  }
+  rebuildFilters();refreshLabels();save();
+
+  const screen=$('customQuizScreen');
+  screen?.addEventListener('dblclick',e=>e.preventDefault(),{passive:false});
+  let lastTouch=0;screen?.addEventListener('touchend',e=>{const now=Date.now();if(now-lastTouch<280)e.preventDefault();lastTouch=now},{passive:false});
+  console.info('[Ephemeris v0.12.8] CET official-shape pools',B4.all.length,B6.all.length)
 })();
 </script>
 
