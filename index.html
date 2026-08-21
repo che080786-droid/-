@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://music.yuncan.xyz" crossorigin>
 <link rel="preconnect" href="https://api.injahow.cn" crossorigin>
-<title>月序 · v0.13.7</title>
+<title>月序 · v0.13.9</title>
 <style>
 :root{
   --ink:#2c282a;--muted:#8f858a;--glass:rgba(255,255,255,.62);--glass2:rgba(255,255,255,.82);
@@ -17983,155 +17983,6 @@ html,body{width:100%!important;height:100%!important;overflow:hidden!important;m
 
 
 <!-- ===== Ephemeris v0.13.5 · 微信/一起听真正锁头 + 状态放备注下 ===== -->
-<style id="ephem-v0135-style">
-/*
-  这版不再依赖 grid “看起来像固定”。
-  抬头、消息区、输入区三块直接绝对定位：滚动只发生在消息区。
-*/
-#yanjingChat.chat-detail.show{
-  display:block!important;
-  position:fixed!important;inset:0!important;
-  width:100%!important;height:100dvh!important;
-  overflow:hidden!important;overscroll-behavior:none!important;
-}
-#yanjingChat .chat-head{
-  position:absolute!important;left:0!important;right:0!important;top:0!important;
-  z-index:90!important;margin:0!important;transform:none!important;
-  flex:none!important;
-}
-#yanjingChat .messages{
-  position:absolute!important;left:0!important;right:0!important;
-  top:calc(54px + env(safe-area-inset-top))!important;
-  bottom:var(--wx-compose-h,58px)!important;
-  min-height:0!important;height:auto!important;
-  overflow-y:auto!important;overflow-x:hidden!important;
-  -webkit-overflow-scrolling:touch!important;overscroll-behavior-y:contain!important;
-  scroll-padding-bottom:18px!important;
-}
-#yanjingChat>div:last-child{
-  position:absolute!important;left:0!important;right:0!important;bottom:0!important;
-  z-index:90!important;background:#f7f7f7!important;
-  transform:none!important;
-}
-
-/* 备注在第一行，即时状态在备注正下方；整个标题区仍可点来改备注。 */
-#yanjingChat .chat-name{
-  display:flex!important;flex-direction:column!important;align-items:center!important;
-  justify-content:center!important;gap:2px!important;
-  min-width:0!important;line-height:1.05!important;
-}
-#yanjingChat .chat-name::after{
-  content:attr(data-status);
-  display:block;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  font-size:8.5px;font-weight:500;color:#9a9698;line-height:1.15;
-  min-height:10px;
-}
-
-/* 一起听主房间：抬头固定，内容自己滚。 */
-#togetherRoom.together-room.show{overflow:hidden!important}
-#togetherRoom .together-room-head{
-  position:absolute!important;left:0!important;right:0!important;top:0!important;
-  z-index:95!important;margin:0!important;transform:none!important;
-}
-#togetherRoom .together-room-body{
-  position:absolute!important;left:0!important;right:0!important;
-  top:calc(58px + env(safe-area-inset-top))!important;bottom:0!important;
-  height:auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;
-  -webkit-overflow-scrolling:touch!important;overscroll-behavior-y:contain!important;
-}
-
-/* 一起听聊天：和正常微信一样，抬头/输入栏不跟消息走。 */
-#togetherChatPage.together-chat-page.show{
-  display:block!important;position:fixed!important;inset:0!important;
-  width:100%!important;height:100dvh!important;overflow:hidden!important;
-  overscroll-behavior:none!important;
-}
-#togetherChatPage .together-chat-head{
-  position:absolute!important;left:0!important;right:0!important;top:0!important;
-  z-index:95!important;margin:0!important;transform:none!important;
-}
-#togetherChatPage .together-chat-messages{
-  position:absolute!important;left:0!important;right:0!important;
-  top:calc(56px + env(safe-area-inset-top))!important;
-  bottom:var(--together-compose-h,58px)!important;
-  height:auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;
-  padding-bottom:18px!important;-webkit-overflow-scrolling:touch!important;
-  overscroll-behavior-y:contain!important;
-}
-#togetherChatPage .together-chat-compose{
-  position:absolute!important;left:0!important;right:0!important;bottom:0!important;
-  z-index:95!important;margin:0!important;transform:none!important;
-}
-
-/* 键盘唤起时不允许页面本体被 Safari 顺手滚走。 */
-#chatInput,#togetherChatInput{font-size:16px!important;touch-action:manipulation}
-</style>
-<script id="ephem-v0135-script">
-(()=>{
-  const wx=$('yanjingChat'), wxFoot=wx?.querySelector(':scope > div:last-child');
-  const together=$('togetherChatPage'), togetherCompose=together?.querySelector('.together-chat-compose');
-
-  function syncLockedChatGeometry(){
-    if(wx&&wxFoot){
-      const h=Math.ceil(wxFoot.getBoundingClientRect().height||58);
-      wx.style.setProperty('--wx-compose-h',`${h}px`);
-    }
-    if(together&&togetherCompose){
-      const h=Math.ceil(togetherCompose.getBoundingClientRect().height||58);
-      together.style.setProperty('--together-compose-h',`${h}px`);
-    }
-  }
-  try{
-    const ro=new ResizeObserver(syncLockedChatGeometry);
-    if(wxFoot)ro.observe(wxFoot);
-    if(togetherCompose)ro.observe(togetherCompose);
-  }catch(_){ }
-  addEventListener('resize',syncLockedChatGeometry,{passive:true});
-  window.visualViewport?.addEventListener?.('resize',syncLockedChatGeometry,{passive:true});
-  setTimeout(syncLockedChatGeometry,0);
-
-  // 把即时状态直接放到备注正下方。亲近度留在详情页，不把聊天抬头做成游戏面板。
-  function syncHeaderState(){
-    const title=document.querySelector('#yanjingChat .chat-name');
-    if(!title)return;
-    let s='';
-    try{
-      const full=typeof window.charRuntimeStateText==='function'?window.charRuntimeStateText():'';
-      // full: “平静 · 精力 76 · 亲近 72” -> 顶部只显示前两段。
-      s=String(full||'').split(' · ').slice(0,2).join(' · ');
-    }catch(_){ }
-    title.dataset.status=s||'平静';
-  }
-  syncHeaderState();
-  setInterval(syncHeaderState,4000);
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden){syncHeaderState();syncLockedChatGeometry()}});
-
-  // 打开微信/一起听聊天时立即重算，且只把消息滚到底，不滚整个页面。
-  const oldOpenYanjing=$('openYanjing')?.onclick;
-  if($('openYanjing'))$('openYanjing').onclick=function(e){
-    oldOpenYanjing?.call(this,e);setTimeout(()=>{syncHeaderState();syncLockedChatGeometry();const m=$('messageList');if(m)m.scrollTop=m.scrollHeight},30)
-  };
-  const oldOpenTogether=$('openTogetherChat')?.onclick;
-  if($('openTogetherChat'))$('openTogetherChat').onclick=function(e){
-    oldOpenTogether?.call(this,e);setTimeout(()=>{syncLockedChatGeometry();const m=$('togetherChatMessages');if(m)m.scrollTop=m.scrollHeight},30)
-  };
-
-  // Safari 聚焦输入框时偶尔尝试移动布局视口：只修正聊天容器，不碰月序其他页面。
-  ['chatInput','togetherChatInput'].forEach(id=>{
-    const el=$(id);if(!el)return;
-    el.addEventListener('focus',()=>setTimeout(()=>{
-      syncLockedChatGeometry();
-      const host=id==='chatInput'?wx:together;
-      if(host){host.scrollTop=0;host.style.transform='translate3d(0,0,0)'}
-    },80));
-  });
-
-  console.info('[Ephemeris v0.13.5] locked chat headers + inline char state installed');
-})();
-</script>
-
-
-
 <style id="ephem136-home-profile-fix">
 /* ===== Ephemeris v0.13.6 · 首页资料组件微调 =====
    仅调整头像与文字内容，不改变组件外框尺寸。 */
@@ -18179,354 +18030,263 @@ html,body{width:100%!important;height:100%!important;overflow:hidden!important;m
   .profile-card .avatar{width:70px!important;height:70px!important;min-width:70px!important;min-height:70px!important}
 }
 </style>
+<!-- ===== Ephemeris v0.13.8 · 长按菜单可见 / 微信与一起听三段锁定 / 首页资料垂直居中 ===== -->
 
-
-<style id="ephem137-critical-layout-fix">
-/* ===== Ephemeris v0.13.7 · 恢复微信输入框 / 真锁一起听顶栏 / 全屏桌面尺寸稳定 ===== */
-
-/* 1) 微信：明确锁定真正的输入区域。v0.13.5 的 >div:last-child 实际选中了消息菜单，导致输入框脱离底部。 */
-#yanjingChat.chat-detail.show{
-  display:block!important;
-  position:fixed!important;
-  inset:0!important;
-  width:100%!important;
-  height:100dvh!important;
-  overflow:hidden!important;
-  overscroll-behavior:none!important;
-  touch-action:none!important;
-}
-#yanjingChat .chat-head{
-  position:absolute!important;
-  left:0!important;right:0!important;top:0!important;
-  z-index:120!important;
-  margin:0!important;transform:none!important;
-}
-#yanjingChat .wx-compose-shell{
-  position:absolute!important;
-  left:0!important;right:0!important;bottom:0!important;
-  z-index:120!important;
-  margin:0!important;
-  background:#f7f7f7!important;
-  transform:none!important;
-  visibility:visible!important;
-  opacity:1!important;
-}
-#yanjingChat .inputbar{
-  display:grid!important;
-  position:relative!important;
-  left:auto!important;right:auto!important;bottom:auto!important;top:auto!important;
-  width:100%!important;
-  visibility:visible!important;
-  opacity:1!important;
-  pointer-events:auto!important;
-}
-#yanjingChat .messages{
-  position:absolute!important;
-  left:0!important;right:0!important;
-  top:var(--wx-head-h,54px)!important;
-  bottom:var(--wx-compose-h,58px)!important;
-  height:auto!important;min-height:0!important;
-  overflow-y:auto!important;overflow-x:hidden!important;
-  -webkit-overflow-scrolling:touch!important;
-  overscroll-behavior:contain!important;
-  touch-action:pan-y!important;
-}
-/* 撤销旧版本把最后一个 div（其实是消息菜单）钉到底部的误选。 */
-#yanjingChat>.wx-msg-menu,
-#yanjingChat>.wx-msg-menu-shade{
-  position:fixed!important;
+<!-- ===== Ephemeris v0.13.9 · 聊天框架重建 / visualViewport 锁头 / 资料真正居中 ===== -->
+<style id="ephem-v0139-rebuild-style">
+:root{
+  --ephem-vv-top:0px;
+  --ephem-vv-height:100dvh;
 }
 
-/* 2) 一起听聊天：页面本体不滚；头、消息、输入三块各占固定区域。 */
+/* 微信和一起听不再直接拿旧页面本体做三行布局。
+   三个核心区域会被 JS 重建进独立 frame；菜单/文件 input 留在 frame 外。 */
+#yanjingChat.chat-detail.show,
 #togetherChatPage.together-chat-page.show{
   display:block!important;
   position:fixed!important;
-  inset:0!important;
-  width:100%!important;
-  height:100dvh!important;
+  left:0!important;right:0!important;
+  top:var(--ephem-vv-top)!important;
+  bottom:auto!important;
+  width:100vw!important;
+  height:var(--ephem-vv-height)!important;
+  max-height:var(--ephem-vv-height)!important;
   overflow:hidden!important;
   overscroll-behavior:none!important;
-  touch-action:none!important;
+  transform:none!important;
+  margin:0!important;
+  padding:0!important;
+  background:#ededed!important;
+  contain:layout paint;
 }
-#togetherChatPage .together-chat-head{
+.ephem-chat-frame{
   position:absolute!important;
-  left:0!important;right:0!important;top:0!important;
-  z-index:130!important;
-  margin:0!important;transform:none!important;
-  flex:none!important;
-}
-#togetherChatPage .together-chat-compose{
-  position:absolute!important;
-  left:0!important;right:0!important;bottom:0!important;
-  z-index:130!important;
-  margin:0!important;transform:none!important;
-  flex:none!important;
-  background:#f7f7f7!important;
-  pointer-events:auto!important;
-}
-#togetherChatPage .together-chat-messages{
-  position:absolute!important;
-  left:0!important;right:0!important;
-  top:var(--together-head-h,56px)!important;
-  bottom:var(--together-compose-h,58px)!important;
-  height:auto!important;min-height:0!important;
-  overflow-y:auto!important;overflow-x:hidden!important;
-  -webkit-overflow-scrolling:touch!important;
-  overscroll-behavior:contain!important;
-  touch-action:pan-y!important;
-  padding-bottom:18px!important;
-}
-#togetherChatPage .together-chat-head *,
-#togetherChatPage .together-chat-compose *,
-#yanjingChat .chat-head *,
-#yanjingChat .wx-compose-shell *{touch-action:manipulation!important}
-
-/* 3) PWA / Safari 两种视口下，第一页组件尺寸按“宽度单元”封顶，不再因为全屏更高而整体被纵向拉大。 */
-@media (display-mode:standalone){
-  .home-page.page-one{padding-bottom:max(118px,calc(env(safe-area-inset-bottom) + 106px))!important}
-}
-</style>
-
-
-<script id="ephem137-critical-layout-script">
-(()=>{
-  if(window.__ephem137Installed)return;window.__ephem137Installed=true;
-  const by=id=>document.getElementById(id);
-
-  // 桌面尺寸：横向单元决定纵向上限。Safari 与主屏全屏切换时，组件视觉大小保持一致。
-  try{
-    window.gridMetrics=function(){
-      const g=by('gridArea'),r=g.getBoundingClientRect();
-      const cw=(r.width-GAP*(COLS-1))/COLS;
-      const natural=(r.height-GAP*(ROWS-1))/ROWS;
-      const ch=Math.min(natural,cw);
-      return {r,cw,ch,sx:cw+GAP,sy:ch+GAP};
-    };
-  }catch(_){ }
-
-  const wx=by('yanjingChat');
-  const wxHead=wx?.querySelector('.chat-head');
-  const wxFoot=wx?.querySelector('.wx-compose-shell');
-  const together=by('togetherChatPage');
-  const togetherHead=together?.querySelector('.together-chat-head');
-  const togetherFoot=together?.querySelector('.together-chat-compose');
-
-  function px(n,fallback){n=Math.ceil(Number(n)||0);return `${Math.max(n,fallback)}px`}
-  function syncGeometry(){
-    if(wx){
-      if(wxHead)wx.style.setProperty('--wx-head-h',px(wxHead.getBoundingClientRect().height,54));
-      if(wxFoot)wx.style.setProperty('--wx-compose-h',px(wxFoot.getBoundingClientRect().height,58));
-    }
-    if(together){
-      if(togetherHead)together.style.setProperty('--together-head-h',px(togetherHead.getBoundingClientRect().height,56));
-      if(togetherFoot)together.style.setProperty('--together-compose-h',px(togetherFoot.getBoundingClientRect().height,58));
-    }
-  }
-
-  try{
-    const ro=new ResizeObserver(syncGeometry);
-    [wxHead,wxFoot,togetherHead,togetherFoot].filter(Boolean).forEach(el=>ro.observe(el));
-  }catch(_){ }
-  addEventListener('resize',()=>{syncGeometry();try{renderDesktop()}catch(_){}},{passive:true});
-  addEventListener('orientationchange',()=>setTimeout(()=>{syncGeometry();try{renderDesktop()}catch(_){}},120),{passive:true});
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden){syncGeometry();try{renderDesktop()}catch(_){}}});
-
-  // 打开页面时只滚消息，不准滚宿主容器。
-  function lockAndBottom(host,list){
-    if(host)host.scrollTop=0;
-    syncGeometry();
-    requestAnimationFrame(()=>{if(list)list.scrollTop=list.scrollHeight});
-  }
-  const openWx=by('openYanjing');
-  if(openWx){
-    const old=openWx.onclick;
-    openWx.onclick=function(e){old?.call(this,e);setTimeout(()=>lockAndBottom(wx,by('messageList')),20)};
-  }
-  const openTogether=by('openTogetherChat');
-  if(openTogether){
-    const old=openTogether.onclick;
-    openTogether.onclick=function(e){old?.call(this,e);setTimeout(()=>lockAndBottom(together,by('togetherChatMessages')),20)};
-  }
-
-  ['chatInput','togetherChatInput'].forEach(id=>{
-    const input=by(id);if(!input)return;
-    input.addEventListener('focus',()=>setTimeout(()=>{
-      const host=id==='chatInput'?wx:together;
-      if(host)host.scrollTop=0;
-      syncGeometry();
-    },40));
-  });
-
-  syncGeometry();
-  setTimeout(()=>{syncGeometry();try{renderDesktop()}catch(_){ }},40);
-  console.info('[Ephemeris v0.13.7] composer restored / together header locked / stable home sizing');
-})();
-</script>
-
-
-<!-- ===== Ephemeris v0.13.8 · 长按菜单可见 / 微信与一起听三段锁定 / 首页资料垂直居中 ===== -->
-<style id="ephem-v0138-chat-menu-layout-fix">
-/* 1) 修复 v0.13.5 残留规则把微信长按菜单刷成浅色：明确恢复深色菜单。 */
-#yanjingChat > #wxMsgMenu.wx-msg-menu{
-  position:fixed!important;
-  z-index:9996!important;
-  display:none;
-  min-width:240px!important;
-  max-width:calc(100vw - 18px)!important;
-  height:46px!important;
-  border-radius:8px!important;
-  background:#27272a!important;
-  box-shadow:0 7px 24px rgba(0,0,0,.28)!important;
-  overflow:visible!important;
-}
-#yanjingChat > #wxMsgMenu.wx-msg-menu.show{display:grid!important}
-#yanjingChat > #wxMsgMenu.wx-msg-menu button{
-  display:block;
-  border:0!important;
-  background:transparent!important;
-  color:#fff!important;
-  opacity:1!important;
-  font-size:9px!important;
-  font-weight:500!important;
-  line-height:46px!important;
-  padding:0 7px!important;
-  white-space:nowrap!important;
-}
-#yanjingChat > #wxMsgMenu.wx-msg-menu button+button:before{
-  content:''!important;position:absolute!important;left:0!important;top:11px!important;bottom:11px!important;
-  width:1px!important;background:rgba(255,255,255,.13)!important;
-}
-#yanjingChat > #wxMsgMenu.wx-msg-menu > i{
-  border-top-color:#27272a!important;
-}
-#yanjingChat > #wxMsgMenu.wx-msg-menu.below > i{
-  border-top-color:transparent!important;
-  border-bottom-color:#27272a!important;
-}
-#yanjingChat > #wxMsgMenuShade.wx-msg-menu-shade{
-  position:fixed!important;inset:0!important;z-index:9995!important;background:transparent!important;
-}
-
-/* 2) 微信：真正的三行布局。宿主固定，只有 messages 这一行允许滚动。 */
-#yanjingChat.chat-detail.show{
+  inset:0!important;
+  width:100%!important;height:100%!important;
   display:grid!important;
   grid-template-rows:auto minmax(0,1fr) auto!important;
-  position:fixed!important;inset:0!important;
-  width:100%!important;height:100dvh!important;
-  max-height:100dvh!important;
   overflow:hidden!important;
   overscroll-behavior:none!important;
-  touch-action:auto!important;
   background:#ededed!important;
 }
-#yanjingChat .chat-head{
-  position:relative!important;inset:auto!important;
-  grid-row:1!important;z-index:50!important;
-  flex:none!important;transform:none!important;margin:0!important;
+
+/* 顶栏永远只占 frame 第一行；它本身不滚、不 sticky、不 fixed，避免 iOS 键盘改变布局视口时漂移。 */
+#yanjingChat .ephem-chat-frame>.chat-head,
+#togetherChatPage .ephem-chat-frame>.together-chat-head{
+  grid-row:1!important;
+  position:relative!important;
+  inset:auto!important;
+  left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;
+  width:100%!important;
+  z-index:5!important;
+  flex:none!important;
+  transform:none!important;
+  margin:0!important;
+  overflow:hidden!important;
+  background:#f7f7f7!important;
 }
-#yanjingChat .messages{
-  position:relative!important;inset:auto!important;
+
+/* 只有中间消息层能滚。 */
+#yanjingChat .ephem-chat-frame>#messageList,
+#togetherChatPage .ephem-chat-frame>#togetherChatMessages{
   grid-row:2!important;
+  position:relative!important;
+  inset:auto!important;
   width:100%!important;height:100%!important;min-height:0!important;
   overflow-y:auto!important;overflow-x:hidden!important;
   -webkit-overflow-scrolling:touch!important;
   overscroll-behavior-y:contain!important;
   touch-action:pan-y!important;
+  transform:none!important;
 }
-#yanjingChat .wx-compose-shell{
-  position:relative!important;inset:auto!important;
-  grid-row:3!important;z-index:50!important;
-  width:100%!important;max-height:46dvh!important;
-  overflow-y:auto!important;overflow-x:hidden!important;
-  margin:0!important;transform:none!important;
-  background:#f7f7f7!important;
-}
+#yanjingChat .ephem-chat-frame>#messageList{padding:18px 12px 20px!important}
+#togetherChatPage .ephem-chat-frame>#togetherChatMessages{padding:14px 12px 18px!important}
 
-/* 3) 一起听聊天：同样使用三行网格，不再依赖测量高度/absolute top。 */
-#togetherChatPage.together-chat-page.show{
-  display:grid!important;
-  grid-template-rows:auto minmax(0,1fr) auto!important;
-  position:fixed!important;inset:0!important;
-  width:100%!important;height:100dvh!important;max-height:100dvh!important;
-  overflow:hidden!important;overscroll-behavior:none!important;
-  touch-action:auto!important;background:#ededed!important;
-}
-#togetherChatPage .together-chat-head{
-  position:relative!important;inset:auto!important;
-  grid-row:1!important;z-index:50!important;
-  margin:0!important;transform:none!important;flex:none!important;
-}
-#togetherChatPage .together-chat-messages{
-  position:relative!important;inset:auto!important;
-  grid-row:2!important;width:100%!important;height:100%!important;min-height:0!important;
-  overflow-y:auto!important;overflow-x:hidden!important;
-  -webkit-overflow-scrolling:touch!important;
-  overscroll-behavior-y:contain!important;
-  touch-action:pan-y!important;
-  padding-bottom:18px!important;
-}
-#togetherChatPage .together-chat-compose{
-  position:relative!important;inset:auto!important;
-  grid-row:3!important;z-index:50!important;
-  margin:0!important;transform:none!important;flex:none!important;
+/* 输入区永远占第三行；表情/加号面板展开时只让第三行变高，中间消息区自动缩小。 */
+#yanjingChat .ephem-chat-frame>.wx-compose-shell,
+#togetherChatPage .ephem-chat-frame>.together-chat-compose{
+  grid-row:3!important;
+  position:relative!important;
+  inset:auto!important;
+  left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;
+  width:100%!important;
+  z-index:6!important;
+  flex:none!important;
+  transform:none!important;
+  margin:0!important;
   background:#f7f7f7!important;
+  pointer-events:auto!important;
 }
+#yanjingChat .ephem-chat-frame>.wx-compose-shell{
+  max-height:min(48vh,360px)!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+}
+#togetherChatPage .ephem-chat-frame>.together-chat-compose{overflow:visible!important}
 
-/* 键盘出现时，输入框字号保持 16px，阻止 iOS Safari 自动页面缩放。 */
+/* iOS Safari：16px 以下聚焦会自动页面缩放。 */
 #chatInput,#togetherChatInput{font-size:16px!important}
 
-/* 4) 首页第一个资料组件：只把文字块向下校正并与头像垂直居中；其余组件尺寸不动。 */
-.profile-card{align-items:center!important}
+/* 顶部备注 + 即时状态。 */
+#yanjingChat .chat-name{
+  display:flex!important;flex-direction:column!important;
+  align-items:center!important;justify-content:center!important;
+  gap:2px!important;line-height:1.05!important;
+  min-width:0!important;overflow:hidden!important;
+}
+#yanjingChat .chat-name::after{
+  content:attr(data-status);
+  display:block;max-width:190px;min-height:10px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:8.5px;font-weight:500;color:#9a9698;line-height:1.15;
+}
+
+/* 长按菜单保留微信深色浮层；它在 frame 外，不参与三行布局。 */
+#yanjingChat>#wxMsgMenuShade.wx-msg-menu-shade{
+  position:fixed!important;inset:0!important;z-index:9995!important;background:transparent!important;
+}
+#yanjingChat>#wxMsgMenu.wx-msg-menu{
+  position:fixed!important;z-index:9996!important;display:none;
+  min-width:240px!important;max-width:calc(100vw - 18px)!important;height:46px!important;
+  border-radius:8px!important;background:#27272a!important;
+  box-shadow:0 7px 24px rgba(0,0,0,.28)!important;overflow:visible!important;
+}
+#yanjingChat>#wxMsgMenu.wx-msg-menu.show{display:grid!important}
+#yanjingChat>#wxMsgMenu.wx-msg-menu button{
+  border:0!important;background:transparent!important;color:#fff!important;opacity:1!important;
+  font-size:9px!important;font-weight:500!important;line-height:46px!important;padding:0 7px!important;white-space:nowrap!important;
+}
+#yanjingChat>#wxMsgMenu.wx-msg-menu button+button:before{
+  content:''!important;position:absolute!important;left:0!important;top:11px!important;bottom:11px!important;width:1px!important;
+  background:rgba(255,255,255,.13)!important;
+}
+#yanjingChat>#wxMsgMenu.wx-msg-menu>i{border-top-color:#27272a!important}
+#yanjingChat>#wxMsgMenu.wx-msg-menu.below>i{border-top-color:transparent!important;border-bottom-color:#27272a!important}
+
+/* 首页第一个资料组件：组件尺寸完全不改，只让内部内容真正占满卡片并垂直居中。
+   之前 profile-card 本身只有内容高度，所以“align-items:center”对整张卡没有意义。 */
+.profile-card{
+  width:100%!important;height:100%!important;
+  min-height:100%!important;
+  grid-template-columns:78px minmax(0,1fr)!important;
+  gap:17px!important;
+  padding:0 18px!important;
+  align-items:center!important;
+  align-content:center!important;
+}
+.profile-card .avatar{
+  width:74px!important;height:74px!important;min-width:74px!important;min-height:74px!important;
+  aspect-ratio:1/1!important;border-radius:50%!important;
+  justify-self:end!important;align-self:center!important;
+}
 .profile-copy{
   align-self:center!important;
-  display:flex!important;
-  flex-direction:column!important;
-  justify-content:center!important;
-  min-height:74px!important;
-  transform:translate(2px,5px)!important;
+  display:flex!important;flex-direction:column!important;justify-content:center!important;
+  min-width:0!important;min-height:0!important;
+  transform:translateX(2px)!important;
+  margin:0!important;
+}
+@media(max-width:360px){
+  .profile-card{grid-template-columns:74px minmax(0,1fr)!important;gap:14px!important;padding:0 15px!important}
+  .profile-card .avatar{width:70px!important;height:70px!important;min-width:70px!important;min-height:70px!important}
 }
 </style>
-<script id="ephem-v0138-chat-menu-layout-script">
+<script id="ephem-v0139-rebuild-script">
 (()=>{
-  if(window.__ephem138Installed)return;window.__ephem138Installed=true;
+  if(window.__ephem139Installed)return;window.__ephem139Installed=true;
   const by=id=>document.getElementById(id);
 
-  // 用户消息可编辑/撤回；双方消息都保留回复、收藏、删除。菜单每次打开时重新校正可见项。
+  /* 真的重建 DOM：只把“顶栏 / 消息 / 输入”放进独立 frame。
+     原节点本身不复制，所以原有 onclick / addEventListener 全部保留。 */
+  function rebuildFrame(root,head,list,foot,id){
+    if(!root||!head||!list||!foot)return null;
+    let frame=by(id);
+    if(!frame){
+      frame=document.createElement('div');
+      frame.id=id;frame.className='ephem-chat-frame';
+      root.insertBefore(frame,root.firstChild);
+    }
+    [head,list,foot].forEach(el=>{if(el.parentElement!==frame)frame.appendChild(el)});
+    return frame;
+  }
+  const wx=by('yanjingChat');
+  const tg=by('togetherChatPage');
+  const wxFrame=rebuildFrame(wx,wx?.querySelector('.chat-head'),by('messageList'),wx?.querySelector('.wx-compose-shell'),'wxChatFrame139');
+  const tgFrame=rebuildFrame(tg,tg?.querySelector('.together-chat-head'),by('togetherChatMessages'),tg?.querySelector('.together-chat-compose'),'togetherChatFrame139');
+
+  /* iOS 键盘改变的是 visual viewport，不一定改变 layout viewport。
+     把聊天宿主直接贴到“当前看得见的那一块屏幕”，顶栏就不会被键盘推到视野外。 */
+  function syncVisualViewport(){
+    const vv=window.visualViewport;
+    const top=vv?Math.max(0,vv.offsetTop||0):0;
+    const h=vv?Math.max(260,vv.height||innerHeight):innerHeight;
+    document.documentElement.style.setProperty('--ephem-vv-top',`${Math.round(top)}px`);
+    document.documentElement.style.setProperty('--ephem-vv-height',`${Math.round(h)}px`);
+    if(wx?.classList.contains('show')||tg?.classList.contains('show')){
+      // Safari 有时仍试图滚 layout viewport 去追聚焦 input；月序本体不需要这个滚动。
+      if(window.scrollY!==0)window.scrollTo(0,0);
+    }
+  }
+  syncVisualViewport();
+  window.visualViewport?.addEventListener('resize',syncVisualViewport,{passive:true});
+  window.visualViewport?.addEventListener('scroll',syncVisualViewport,{passive:true});
+  addEventListener('resize',syncVisualViewport,{passive:true});
+  addEventListener('orientationchange',()=>setTimeout(syncVisualViewport,80),{passive:true});
+
+  function scrollMessagesToBottom(list){
+    if(!list)return;
+    requestAnimationFrame(()=>{list.scrollTop=list.scrollHeight});
+  }
+  ['chatInput','togetherChatInput'].forEach(id=>{
+    const input=by(id);if(!input)return;
+    input.addEventListener('focus',()=>{
+      setTimeout(()=>{
+        syncVisualViewport();
+        scrollMessagesToBottom(id==='chatInput'?by('messageList'):by('togetherChatMessages'));
+      },60)
+    });
+  });
+
+  /* 每次打开时重新贴 visual viewport，并只滚消息层。 */
+  const openWx=by('openYanjing');
+  if(openWx){
+    const old=openWx.onclick;
+    openWx.onclick=function(e){old?.call(this,e);setTimeout(()=>{syncVisualViewport();scrollMessagesToBottom(by('messageList'))},20)};
+  }
+  const openTg=by('openTogetherChat');
+  if(openTg){
+    const old=openTg.onclick;
+    openTg.onclick=function(e){old?.call(this,e);setTimeout(()=>{syncVisualViewport();scrollMessagesToBottom(by('togetherChatMessages'))},20)};
+  }
+
+  /* 状态继续放备注下面；亲近度仍留在详情。 */
+  function syncHeaderState(){
+    const title=document.querySelector('#yanjingChat .chat-name');if(!title)return;
+    let text='平静';
+    try{
+      const full=typeof window.charRuntimeStateText==='function'?window.charRuntimeStateText():'';
+      text=String(full||'').split(' · ').slice(0,2).join(' · ')||'平静';
+    }catch(_){ }
+    title.dataset.status=text;
+  }
+  syncHeaderState();
+  setInterval(syncHeaderState,4000);
+
+  /* 菜单：用户消息才有编辑/撤回；回复/收藏/删除双方都有。 */
   const oldOpen=window.openWxMsgMenu;
   if(typeof oldOpen==='function'){
     window.openWxMsgMenu=function(index,row){
       oldOpen(index,row);
-      const m=(window.state?.chat||[])[index];
-      const menu=by('wxMsgMenu');if(!m||!menu)return;
-      const edit=menu.querySelector('[data-wx-msg-action="edit"]');
-      const recall=menu.querySelector('[data-wx-msg-action="recall"]');
-      const quote=menu.querySelector('[data-wx-msg-action="quote"]');
-      const fav=menu.querySelector('[data-wx-msg-action="favorite"]');
-      const del=menu.querySelector('[data-wx-msg-action="delete"]');
-      if(edit)edit.style.display=(m.role==='user'&&(!m.type||m.type==='text'))?'block':'none';
-      if(recall)recall.style.display=m.role==='user'?'block':'none';
-      if(quote)quote.style.display='block';
-      if(fav)fav.style.display='block';
-      if(del)del.style.display='block';
-      const visible=[...menu.querySelectorAll('button')].filter(b=>getComputedStyle(b).display!=='none').length;
-      menu.style.gridTemplateColumns=`repeat(${Math.max(1,visible)},minmax(0,1fr))`;
+      const m=(window.state?.chat||[])[index],menu=by('wxMsgMenu');if(!m||!menu)return;
+      const set=(act,show)=>{const b=menu.querySelector(`[data-wx-msg-action="${act}"]`);if(b)b.style.display=show?'block':'none'};
+      set('copy',true);set('quote',true);set('favorite',true);set('delete',true);
+      set('edit',m.role==='user'&&(!m.type||m.type==='text'));
+      set('recall',m.role==='user');
+      const n=[...menu.querySelectorAll('button')].filter(b=>getComputedStyle(b).display!=='none').length;
+      menu.style.gridTemplateColumns=`repeat(${Math.max(1,n)},minmax(0,1fr))`;
     };
   }
 
-  function keepOnlyMessagePaneScrolled(host,list){
-    if(host)host.scrollTop=0;
-    if(list)requestAnimationFrame(()=>{list.scrollTop=list.scrollHeight});
-  }
-  const wx=by('yanjingChat'), wxList=by('messageList');
-  const tg=by('togetherChatPage'), tgList=by('togetherChatMessages');
-  ['chatInput','togetherChatInput'].forEach(id=>{
-    const input=by(id);if(!input)return;
-    input.addEventListener('focus',()=>setTimeout(()=>{
-      keepOnlyMessagePaneScrolled(id==='chatInput'?wx:tg,id==='chatInput'?wxList:tgList);
-    },80));
-  });
-
-  console.info('[Ephemeris v0.13.8] long-press menu visible / chat three-row lock / profile copy centered');
+  console.info('[Ephemeris v0.13.9] chat DOM rebuilt / visualViewport locked / profile vertically centered');
 })();
 </script>
 
