@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://music.yuncan.xyz" crossorigin>
 <link rel="preconnect" href="https://api.injahow.cn" crossorigin>
-<title>月序 · v0.13.2</title>
+<title>月序 · v0.13.7</title>
 <style>
 :root{
   --ink:#2c282a;--muted:#8f858a;--glass:rgba(255,255,255,.62);--glass2:rgba(255,255,255,.82);
@@ -4611,7 +4611,7 @@ button.chat-system-recall.char{text-decoration:underline;text-decoration-color:#
   <section class="chat-detail" id="yanjingChat">
     <header class="chat-head"><button id="closeYanjing">‹</button><div class="chat-name">晏景</div><button id="openChatSettings">•••</button></header>
     <div class="messages" id="messageList"></div>
-    <div>
+    <div class="wx-compose-shell">
       <div class="wx-compose-context" id="wxComposeContext">
         <div>
           <b id="wxComposeContextTitle">引用消息</b>
@@ -18130,8 +18130,7 @@ html,body{width:100%!important;height:100%!important;overflow:hidden!important;m
 })();
 </script>
 
-</body>
-</html>
+
 
 <style id="ephem136-home-profile-fix">
 /* ===== Ephemeris v0.13.6 · 首页资料组件微调 =====
@@ -18180,3 +18179,189 @@ html,body{width:100%!important;height:100%!important;overflow:hidden!important;m
   .profile-card .avatar{width:70px!important;height:70px!important;min-width:70px!important;min-height:70px!important}
 }
 </style>
+
+
+<style id="ephem137-critical-layout-fix">
+/* ===== Ephemeris v0.13.7 · 恢复微信输入框 / 真锁一起听顶栏 / 全屏桌面尺寸稳定 ===== */
+
+/* 1) 微信：明确锁定真正的输入区域。v0.13.5 的 >div:last-child 实际选中了消息菜单，导致输入框脱离底部。 */
+#yanjingChat.chat-detail.show{
+  display:block!important;
+  position:fixed!important;
+  inset:0!important;
+  width:100%!important;
+  height:100dvh!important;
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+  touch-action:none!important;
+}
+#yanjingChat .chat-head{
+  position:absolute!important;
+  left:0!important;right:0!important;top:0!important;
+  z-index:120!important;
+  margin:0!important;transform:none!important;
+}
+#yanjingChat .wx-compose-shell{
+  position:absolute!important;
+  left:0!important;right:0!important;bottom:0!important;
+  z-index:120!important;
+  margin:0!important;
+  background:#f7f7f7!important;
+  transform:none!important;
+  visibility:visible!important;
+  opacity:1!important;
+}
+#yanjingChat .inputbar{
+  display:grid!important;
+  position:relative!important;
+  left:auto!important;right:auto!important;bottom:auto!important;top:auto!important;
+  width:100%!important;
+  visibility:visible!important;
+  opacity:1!important;
+  pointer-events:auto!important;
+}
+#yanjingChat .messages{
+  position:absolute!important;
+  left:0!important;right:0!important;
+  top:var(--wx-head-h,54px)!important;
+  bottom:var(--wx-compose-h,58px)!important;
+  height:auto!important;min-height:0!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior:contain!important;
+  touch-action:pan-y!important;
+}
+/* 撤销旧版本把最后一个 div（其实是消息菜单）钉到底部的误选。 */
+#yanjingChat>.wx-msg-menu,
+#yanjingChat>.wx-msg-menu-shade{
+  position:fixed!important;
+}
+
+/* 2) 一起听聊天：页面本体不滚；头、消息、输入三块各占固定区域。 */
+#togetherChatPage.together-chat-page.show{
+  display:block!important;
+  position:fixed!important;
+  inset:0!important;
+  width:100%!important;
+  height:100dvh!important;
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+  touch-action:none!important;
+}
+#togetherChatPage .together-chat-head{
+  position:absolute!important;
+  left:0!important;right:0!important;top:0!important;
+  z-index:130!important;
+  margin:0!important;transform:none!important;
+  flex:none!important;
+}
+#togetherChatPage .together-chat-compose{
+  position:absolute!important;
+  left:0!important;right:0!important;bottom:0!important;
+  z-index:130!important;
+  margin:0!important;transform:none!important;
+  flex:none!important;
+  background:#f7f7f7!important;
+  pointer-events:auto!important;
+}
+#togetherChatPage .together-chat-messages{
+  position:absolute!important;
+  left:0!important;right:0!important;
+  top:var(--together-head-h,56px)!important;
+  bottom:var(--together-compose-h,58px)!important;
+  height:auto!important;min-height:0!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior:contain!important;
+  touch-action:pan-y!important;
+  padding-bottom:18px!important;
+}
+#togetherChatPage .together-chat-head *,
+#togetherChatPage .together-chat-compose *,
+#yanjingChat .chat-head *,
+#yanjingChat .wx-compose-shell *{touch-action:manipulation!important}
+
+/* 3) PWA / Safari 两种视口下，第一页组件尺寸按“宽度单元”封顶，不再因为全屏更高而整体被纵向拉大。 */
+@media (display-mode:standalone){
+  .home-page.page-one{padding-bottom:max(118px,calc(env(safe-area-inset-bottom) + 106px))!important}
+}
+</style>
+
+
+<script id="ephem137-critical-layout-script">
+(()=>{
+  if(window.__ephem137Installed)return;window.__ephem137Installed=true;
+  const by=id=>document.getElementById(id);
+
+  // 桌面尺寸：横向单元决定纵向上限。Safari 与主屏全屏切换时，组件视觉大小保持一致。
+  try{
+    window.gridMetrics=function(){
+      const g=by('gridArea'),r=g.getBoundingClientRect();
+      const cw=(r.width-GAP*(COLS-1))/COLS;
+      const natural=(r.height-GAP*(ROWS-1))/ROWS;
+      const ch=Math.min(natural,cw);
+      return {r,cw,ch,sx:cw+GAP,sy:ch+GAP};
+    };
+  }catch(_){ }
+
+  const wx=by('yanjingChat');
+  const wxHead=wx?.querySelector('.chat-head');
+  const wxFoot=wx?.querySelector('.wx-compose-shell');
+  const together=by('togetherChatPage');
+  const togetherHead=together?.querySelector('.together-chat-head');
+  const togetherFoot=together?.querySelector('.together-chat-compose');
+
+  function px(n,fallback){n=Math.ceil(Number(n)||0);return `${Math.max(n,fallback)}px`}
+  function syncGeometry(){
+    if(wx){
+      if(wxHead)wx.style.setProperty('--wx-head-h',px(wxHead.getBoundingClientRect().height,54));
+      if(wxFoot)wx.style.setProperty('--wx-compose-h',px(wxFoot.getBoundingClientRect().height,58));
+    }
+    if(together){
+      if(togetherHead)together.style.setProperty('--together-head-h',px(togetherHead.getBoundingClientRect().height,56));
+      if(togetherFoot)together.style.setProperty('--together-compose-h',px(togetherFoot.getBoundingClientRect().height,58));
+    }
+  }
+
+  try{
+    const ro=new ResizeObserver(syncGeometry);
+    [wxHead,wxFoot,togetherHead,togetherFoot].filter(Boolean).forEach(el=>ro.observe(el));
+  }catch(_){ }
+  addEventListener('resize',()=>{syncGeometry();try{renderDesktop()}catch(_){}},{passive:true});
+  addEventListener('orientationchange',()=>setTimeout(()=>{syncGeometry();try{renderDesktop()}catch(_){}},120),{passive:true});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden){syncGeometry();try{renderDesktop()}catch(_){}}});
+
+  // 打开页面时只滚消息，不准滚宿主容器。
+  function lockAndBottom(host,list){
+    if(host)host.scrollTop=0;
+    syncGeometry();
+    requestAnimationFrame(()=>{if(list)list.scrollTop=list.scrollHeight});
+  }
+  const openWx=by('openYanjing');
+  if(openWx){
+    const old=openWx.onclick;
+    openWx.onclick=function(e){old?.call(this,e);setTimeout(()=>lockAndBottom(wx,by('messageList')),20)};
+  }
+  const openTogether=by('openTogetherChat');
+  if(openTogether){
+    const old=openTogether.onclick;
+    openTogether.onclick=function(e){old?.call(this,e);setTimeout(()=>lockAndBottom(together,by('togetherChatMessages')),20)};
+  }
+
+  ['chatInput','togetherChatInput'].forEach(id=>{
+    const input=by(id);if(!input)return;
+    input.addEventListener('focus',()=>setTimeout(()=>{
+      const host=id==='chatInput'?wx:together;
+      if(host)host.scrollTop=0;
+      syncGeometry();
+    },40));
+  });
+
+  syncGeometry();
+  setTimeout(()=>{syncGeometry();try{renderDesktop()}catch(_){ }},40);
+  console.info('[Ephemeris v0.13.7] composer restored / together header locked / stable home sizing');
+})();
+</script>
+
+</body>
+</html>
