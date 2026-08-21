@@ -6840,7 +6840,7 @@ if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudf
 </script>
 <script>
 const KEY='ephemeris_v091_backup_chat_cycle', OLD_KEY='ephemeris_v090_music_library_pause_reset';
-const COLS=4, ROWS=7, GAP=12;
+const COLS=4, ROWS=7, GAP=14;
 const DEFAULT_LAYOUT={
   profile:{kind:'widget',x:0,y:0,w:4,h:1.75},moon:{kind:'widget',x:0,y:1.78,w:2,h:1},clock:{kind:'widget',x:2,y:1.78,w:2,h:1},weather:{kind:'widget',x:0,y:2.86,w:4,h:1},
   wechat:{kind:'app',x:0,y:4,w:1,h:1},tasks:{kind:'app',x:1,y:4,w:1,h:1},practice:{kind:'app',x:2,y:4,w:1,h:1},words:{kind:'app',x:3,y:4,w:1,h:1},
@@ -17555,6 +17555,428 @@ html,body{width:100%!important;height:100%!important;overflow:hidden!important;m
   document.querySelector('#customQuizScreen .back')?.addEventListener('click',()=>{$('customQuizScreen').classList.remove('cet132-mode');stopSpeak()});
   rebuildCETUI();
   console.info('[Ephemeris v0.13.2] CET4 quick/objective',count('cet4quick'),count('cet4mix'),'CET6',count('cet6quick'),count('cet6mix'));
+})();
+</script>
+
+
+<style id="ephem133-style">
+/* ===== Ephemeris v0.13.3 · 主观题真正可做 / 组件内容微放大 ===== */
+/* 只放大组件里面的内容，不动组件外框与布局尺寸。 */
+.profile-card{
+  grid-template-columns:70px minmax(0,1fr)!important;
+  gap:12px!important;
+  padding:10px 12px!important;
+}
+.profile-card .avatar{width:66px!important;font-size:28px!important}
+.profile-copy h1{font-size:20px!important;margin-bottom:3px!important}
+.profile-copy .handle{font-size:9px!important;margin-bottom:4px!important}
+.profile-copy .sign{font-size:10.5px!important;line-height:1.5!important}
+.profile-copy .loc{font-size:9px!important;margin-top:3px!important}
+.widget-copy b{font-size:19px!important}
+.widget-copy span{font-size:10px!important}
+.clock-big{font-size:29px!important}
+.clock-date{font-size:10px!important}
+.weather-temp{font-size:24px!important}
+.weather-meta{font-size:10px!important}
+.weather-emoji{font-size:33px!important}
+/* 第二页只再松一点点，图标大小不继续变。 */
+.second-page-grid{column-gap:15px!important;row-gap:24px!important;padding-left:6px!important;padding-right:6px!important}
+
+/* CET 主观题：题目必须先出现，再答题。 */
+.exam133-prompt{
+  border-radius:16px;background:#f6f2f4;padding:14px 15px;margin:0 0 13px;
+  font-size:12px;line-height:1.75;color:#332f32;white-space:pre-wrap
+}
+.exam133-prompt b{display:block;font-size:9px;color:#9a6e80;margin-bottom:7px;letter-spacing:.04em}
+.exam133-manual textarea{
+  width:100%;min-height:30vh!important;max-height:46vh!important;border:1px solid #e4d9de!important;
+  border-radius:15px!important;background:#fff!important;padding:13px!important;font-size:13px!important;
+  line-height:1.75!important;box-sizing:border-box!important
+}
+.exam133-meta{display:flex;justify-content:space-between;gap:8px;align-items:center;margin:7px 2px 0;color:#aaa;font-size:8px}
+.exam133-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:11px}
+.exam133-actions button{border:0;border-radius:13px;padding:11px 8px;font-size:10px;font-weight:700}
+.exam133-ai{background:#302d34;color:#fff}.exam133-refbtn{background:#f1e9ed;color:#765d68}
+.exam133-ai[disabled]{opacity:.52}
+.exam133-result{margin-top:10px;border-radius:14px;background:#f6f3f5;padding:12px;font-size:10px;line-height:1.75;color:#5f565b;white-space:pre-wrap}
+.exam133-result[hidden]{display:none}
+.exam133-api-tip{margin-top:8px;color:#9b8e94;font-size:8px;line-height:1.55;text-align:center}
+.api-feature-row.cet-grade-row{background:#fff9fb!important}
+@media(max-width:360px){.profile-card{grid-template-columns:66px minmax(0,1fr)!important}.profile-card .avatar{width:62px!important}}
+</style>
+<script>
+/* ===== Ephemeris v0.13.3 · CET 写作/翻译题目 + API 批改 ===== */
+(()=>{
+  if(window.__ephem133Installed)return;window.__ephem133Installed=true;
+  const $133=id=>document.getElementById(id);
+  const esc133=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  function installGradeToggle(){
+    const box=document.querySelector('#apiSettingsPanel .api-feature-box');
+    if(!box||box.querySelector('[data-api-feature="cetGrade"]'))return;
+    const practice=box.querySelector('[data-api-feature="practice"]')?.closest('.api-feature-row');
+    const row=document.createElement('label');row.className='setting-switch api-feature-row cet-grade-row';
+    row.innerHTML='<span><b>CET 主观题批改</b><small>写作 / 汉译英：按题目给修改建议，不要求和参考答案一字不差</small></span><input data-api-feature="cetGrade" type="checkbox">';
+    practice?.insertAdjacentElement('afterend',row) || box.appendChild(row);
+    const input=row.querySelector('input');
+    state.api ||= {};state.api.features ||= {};
+    input.checked=state.api.features.cetGrade===true;
+    input.onchange=()=>{state.api.features.cetGrade=input.checked;save();renderApiStatus?.();toast?.(`CET 主观题批改 · ${input.checked?'API 已开启':'API 已关闭'}`)};
+  }
+  installGradeToggle();
+  const oldFill=window.fillSettings;
+  if(typeof oldFill==='function')window.fillSettings=fillSettings=function(){oldFill();installGradeToggle();const el=document.querySelector('[data-api-feature="cetGrade"]');if(el)el.checked=state.api?.features?.cetGrade===true};
+
+  function subjectivePrompt(q){
+    let s=String(q?.q||'').trim();
+    s=s.replace(/^Writing\s*/i,'').replace(/^Translation\s*/i,'').trim();
+    return s||'题目暂缺';
+  }
+  function apiConfigured(){return !!(state.api?.endpoint&&state.api?.model&&sessionStorage.getItem('yue_api_key'))}
+  function apiGradeEnabled(){return state.api?.features?.cetGrade===true}
+  function extractApiText(data){
+    if(data?.choices?.[0]?.message?.content)return String(data.choices[0].message.content).trim();
+    if(typeof data?.output_text==='string')return data.output_text.trim();
+    const chunks=[];
+    for(const item of (data?.output||[]))for(const c of (item?.content||[]))if(typeof c?.text==='string')chunks.push(c.text);
+    return chunks.join('\n').trim();
+  }
+  async function gradeSubjective(q,answer){
+    if(!apiGradeEnabled())throw new Error('请先在 设置 → AI 接口 打开「CET 主观题批改」');
+    if(!apiConfigured())throw new Error('请先在 设置 → AI 接口 填好 Endpoint、模型和 API Key');
+    const isWriting=q.skill==='writing';
+    const system=isWriting
+      ?'你是大学英语四/六级写作批改老师。用中文简洁批改。先判断是否真正回应题目，再指出最重要的语法/搭配/逻辑问题，给可直接替换的修改；最后给一版保持学生原水平、不要故意堆高级词的改写。不要假装给官方精确分数，可给“基础/合格/较好/优秀”这种大致等级。'
+      :'你是大学英语四/六级汉译英批改老师。参考译文只是对照，不要求逐字一致。用中文检查信息是否漏译/错译、语法和搭配是否自然；列出最关键的修改，再给一版自然的修订译文。不要因为表达与参考不同就判错。';
+    const reference=q.reference||'';
+    const prompt=`考试：${q.subject||'CET'}\n题型：${isWriting?'短文写作':'汉译英'}\n题目：\n${subjectivePrompt(q)}\n\n学生答案：\n${answer}\n\n${reference?`本地参考/检查点：\n${reference}\n\n`:''}请只返回批改结果。`;
+    const r=await fetch(state.api.endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+sessionStorage.getItem('yue_api_key')},body:JSON.stringify({model:state.api.model,messages:[{role:'system',content:system},{role:'user',content:prompt}]})});
+    if(!r.ok)throw new Error('API 请求失败 · '+r.status);
+    const data=await r.json(),txt=extractApiText(data);if(!txt)throw new Error('API 没有返回批改内容');return txt;
+  }
+  function wordCount(s){return (String(s).match(/[A-Za-z]+(?:['’-][A-Za-z]+)*/g)||[]).length}
+  function renderSubjective133(q,box){
+    const isWriting=q.skill==='writing';
+    const prompt=subjectivePrompt(q);
+    box.innerHTML=`<div class="exam133-prompt"><b>${isWriting?'WRITING PROMPT':'TRANSLATION TASK'}</b>${esc133(prompt)}</div><div class="exam133-manual"><textarea id="e133Answer" placeholder="${isWriting?'在这里写作文…':'在这里写你的英文译文…'}"></textarea><div class="exam133-meta"><span>${isWriting?'<span id="e133Words">0</span> words':'参考译文只作对照，不要求逐字一致'}</span><span>${q.subject||''}</span></div><div class="exam133-actions"><button class="exam133-ai" id="e133Grade">${isWriting?'AI 批改':'AI 对照批改'}</button><button class="exam133-refbtn" id="e133RefBtn">${isWriting?'参考检查点':'参考译文'}</button></div><div class="exam133-result" id="e133Result" hidden></div><div class="exam133-api-tip">AI 批改由 设置 → AI 接口 → CET 主观题批改 控制；未开启时不会消耗 Token。</div></div>`;
+    const ta=$133('e133Answer'),result=$133('e133Result'),grade=$133('e133Grade');
+    if(isWriting)ta.addEventListener('input',()=>{$133('e133Words').textContent=wordCount(ta.value)});
+    $133('e133RefBtn').onclick=()=>{result.hidden=!result.hidden;result.textContent=q.reference||'暂无参考内容'};
+    grade.onclick=async()=>{const ans=ta.value.trim();if(!ans){toast?.('先写一点答案再批改');return}const old=grade.textContent;grade.disabled=true;grade.textContent='批改中…';result.hidden=false;result.textContent='正在读取你的答案…';try{result.textContent=await gradeSubjective(q,ans)}catch(e){result.textContent=e?.message||'批改失败'}finally{grade.disabled=false;grade.textContent=old}};
+  }
+  const previousRender=window.renderCustomQuiz;
+  if(typeof previousRender==='function')window.renderCustomQuiz=renderCustomQuiz=function(){
+    previousRender();
+    const q=customQuizItems?.[customQuizIndex];if(!q||!(q.skill==='writing'||q.skill==='translation'))return;
+    const box=$133('customQuizOptions');if(!box)return;
+    renderSubjective133(q,box);
+    const card=document.querySelector('#customQuizScreen .quiz-question-card');if(card)card.scrollTop=0;
+  };
+  console.info('[Ephemeris v0.13.3] subjective prompts + API grading installed');
+})();
+</script>
+
+
+
+<!-- ===== Ephemeris v0.13.4 · 全局音乐 / 聊天头锁定 / 微信备注 / Char即时情绪 ===== -->
+<style id="ephem-v0134-style">
+/* iPhone Safari: 输入框字号 <16px 会触发页面自动放大/上移。聊天输入统一到 16px，视觉尺寸不改。 */
+.chat-input,
+.together-chat-compose input,
+.created-char-compose input,
+#charRemarkInput{
+  font-size:16px!important;
+}
+
+/* 微信 / 一起听：只滚消息区，头部和输入栏永远留在原位。 */
+.chat-detail.show,
+.together-chat-page.show{
+  position:fixed!important;
+  inset:0!important;
+  width:100%!important;
+  height:100dvh!important;
+  max-height:100dvh!important;
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+}
+.chat-detail.show{grid-template-rows:auto minmax(0,1fr) auto!important}
+.together-chat-page.show{grid-template-rows:auto minmax(0,1fr) auto!important}
+.chat-head,
+.together-chat-head{
+  position:relative!important;
+  top:0!important;
+  z-index:35!important;
+  flex:none!important;
+  transform:none!important;
+}
+.messages,
+.together-chat-messages{
+  min-height:0!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior-y:contain!important;
+  -webkit-overflow-scrolling:touch;
+}
+.inputbar,
+.together-chat-compose{
+  position:relative!important;
+  z-index:35!important;
+  flex:none!important;
+}
+
+/* 聊天名可以点，但外观仍像微信标题。 */
+.chat-name.remark-editable{
+  border:0!important;background:transparent!important;padding:4px 8px!important;
+  min-width:0!important;max-width:100%!important;color:inherit!important;
+  font-size:16px!important;font-weight:700!important;line-height:1.2!important;
+  overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;
+}
+.char-state-line{font-size:8px;color:#999;margin-top:3px}
+
+.char-remark-layer{
+  position:fixed;inset:0;z-index:310;display:none;align-items:flex-end;
+  background:rgba(22,19,21,.34);backdrop-filter:blur(7px);padding:0
+}
+.char-remark-layer.show{display:flex}
+.char-remark-card{
+  width:100%;background:#f7f5f6;border-radius:24px 24px 0 0;
+  padding:16px 16px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -18px 50px rgba(0,0,0,.14)
+}
+.char-remark-card h3{margin:0;font-size:15px}.char-remark-card p{font-size:9px;color:#999;line-height:1.55;margin:5px 0 12px}
+.char-remark-card input{width:100%;height:44px;border:1px solid #ddd4d9;border-radius:12px;background:#fff;padding:0 12px;outline:0}
+.char-remark-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.char-remark-actions button{border:0;border-radius:12px;padding:11px;font-size:10px;font-weight:750}
+.char-remark-actions .cancel{background:#ece8ea;color:#70666b}.char-remark-actions .save{background:#d995ae;color:#fff}
+
+.char-runtime-card{margin-top:8px;padding:10px 12px;border-radius:13px;background:#f6f2f4;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.char-runtime-card b{display:block;font-size:10px}.char-runtime-card span{display:block;font-size:8px;color:#999;margin-top:3px}
+.char-runtime-pill{border-radius:999px;background:#fff;padding:6px 8px;font-size:8px;color:#806674;white-space:nowrap}
+</style>
+
+<section class="char-remark-layer" id="charRemarkLayer" aria-hidden="true">
+  <div class="char-remark-card">
+    <h3>设置备注</h3>
+    <p>备注只改变微信里你看到的名字，不会改掉 Char 的真实身份、世界书或角色设定。</p>
+    <input id="charRemarkInput" maxlength="18" placeholder="例如：晏景 / 哥哥 / 某人">
+    <div class="char-remark-actions">
+      <button class="cancel" id="charRemarkCancel">取消</button>
+      <button class="save" id="charRemarkSave">保存</button>
+    </div>
+  </div>
+</section>
+
+<script id="ephem-v0134-script">
+(()=>{
+  /* ---------- 1. 音乐变成真正的月序全局播放器 ---------- */
+  const globalAudio=$('audio');
+  if(globalAudio)globalAudio.dataset.globalPlayer='1';
+
+  // 覆盖通用返回逻辑：离开音乐 App / 播放页时，不暂停全局播放器；
+  // CET、Practice 等页面自己的局部音频仍照常停止。
+  document.querySelectorAll('.back').forEach(b=>b.onclick=()=>{
+    const parent=b.closest('.screen,.subscreen');
+    const isMain=parent?.classList.contains('screen');
+    if(parent?.id==='englishSkillScreen')stopNaturalEnglish();
+    if(parent?.id==='paperViewerScreen')stopCetAudioPlayback(true);
+    parent?.querySelectorAll?.('audio').forEach(a=>{
+      if(a.id==='audio'||a.dataset.globalPlayer==='1')return;
+      try{a.pause()}catch(_){}
+    });
+    parent?.classList.remove('active','show');
+    if(isMain)stopUsage()
+  });
+
+  /* ---------- 2. 晏景微信备注 ---------- */
+  state.wechat ||= {};
+  if(typeof state.wechat.charRemark!=='string')state.wechat.charRemark='';
+  const displayName=()=>String(state.wechat.charRemark||'').trim()||'晏景';
+  window.yanjingDisplayName=displayName;
+
+  function syncYanjingDisplayName(){
+    const name=displayName();
+    const title=document.querySelector('#yanjingChat .chat-name');
+    if(title){title.textContent=name;title.title='点一下修改备注'}
+    const row=document.querySelector('#openYanjing .chat-copy b');if(row)row.textContent=name;
+    const contact=document.querySelector('#contactYanjing span:not(.row-tail)');if(contact)contact.textContent=name;
+    const detail=document.querySelector('#chatSettings .screen-title span');if(detail)detail.textContent=name;
+    const card=document.querySelector('#chatSettings .chat-settings-avatar b');if(card)card.textContent=name;
+    const input=$('chatInput');if(input)input.placeholder=`发消息给 ${name}`;
+  }
+
+  const chatName=document.querySelector('#yanjingChat .chat-name');
+  if(chatName){
+    chatName.classList.add('remark-editable');
+    chatName.setAttribute('role','button');
+    chatName.setAttribute('tabindex','0');
+    chatName.onclick=()=>openRemarkEditor();
+    chatName.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openRemarkEditor()}}
+  }
+  function openRemarkEditor(){
+    $('charRemarkInput').value=state.wechat.charRemark||'';
+    $('charRemarkLayer').classList.add('show');
+    $('charRemarkLayer').setAttribute('aria-hidden','false');
+    setTimeout(()=>{try{$('charRemarkInput').focus({preventScroll:true})}catch(_){$('charRemarkInput').focus()}},80)
+  }
+  function closeRemarkEditor(){
+    $('charRemarkLayer').classList.remove('show');
+    $('charRemarkLayer').setAttribute('aria-hidden','true');
+    try{$('charRemarkInput').blur()}catch(_){}
+  }
+  $('charRemarkCancel').onclick=closeRemarkEditor;
+  $('charRemarkLayer').onclick=e=>{if(e.target===$('charRemarkLayer'))closeRemarkEditor()};
+  $('charRemarkSave').onclick=()=>{
+    state.wechat.charRemark=String($('charRemarkInput').value||'').trim().slice(0,18);
+    save();syncYanjingDisplayName();closeRemarkEditor();toast(state.wechat.charRemark?'备注已修改':'已恢复原名 晏景')
+  };
+
+  const oldRenderWechatAvatars=renderWechatAvatars;
+  renderWechatAvatars=function(){oldRenderWechatAvatars();syncYanjingDisplayName()};
+
+  /* ---------- 3. Char 即时情绪：世界书管“是谁”，这里管“现在是什么状态” ---------- */
+  state.wechat.charState ||= {mood:68,energy:76,closeness:72,lastAt:Date.now()};
+  const cs=state.wechat.charState;
+  ['mood','energy','closeness'].forEach(k=>{cs[k]=Math.max(0,Math.min(100,Number(cs[k])||0))});
+  cs.lastAt=Number(cs.lastAt)||Date.now();
+
+  function settleCharState(){
+    const now=Date.now(),elapsed=Math.max(0,now-(cs.lastAt||now));
+    // 精力每 20 分钟恢复 1；情绪缓慢回归平静值 68。
+    const recover=Math.floor(elapsed/(20*60*1000));
+    if(recover>0){
+      cs.energy=Math.min(100,cs.energy+recover);
+      if(cs.mood<68)cs.mood=Math.min(68,cs.mood+Math.ceil(recover/2));
+      if(cs.mood>78)cs.mood=Math.max(78,cs.mood-Math.ceil(recover/3));
+      cs.lastAt=now;save(false)
+    }
+  }
+  function charMoodWord(){
+    settleCharState();
+    if(cs.energy<28)return '有点累';
+    if(cs.mood<35)return '闷闷的';
+    if(cs.mood<55)return '安静';
+    if(cs.mood<78)return '平静';
+    if(cs.mood<91)return '心情不错';
+    return '很开心'
+  }
+  function charStateText(){return `${charMoodWord()} · 精力 ${Math.round(cs.energy)} · 亲近 ${Math.round(cs.closeness)}`}
+  function nudgeCharState(dm=0,de=0,dc=0){
+    settleCharState();
+    cs.mood=Math.max(0,Math.min(100,cs.mood+dm));
+    cs.energy=Math.max(0,Math.min(100,cs.energy+de));
+    cs.closeness=Math.max(0,Math.min(100,cs.closeness+dc));
+    cs.lastAt=Date.now();save(false);renderRuntimeState()
+  }
+  function renderRuntimeState(){
+    const box=$('charRuntimeState');if(box)box.textContent=charStateText();
+    const pill=$('charRuntimePill');if(pill)pill.textContent=charMoodWord()
+  }
+  window.charRuntimeStateText=charStateText;
+
+  const settingsFirst=document.querySelector('#chatSettings .detail-card');
+  if(settingsFirst&&!$('charRuntimeCard')){
+    const rt=document.createElement('div');
+    rt.className='char-runtime-card';rt.id='charRuntimeCard';
+    rt.innerHTML='<div><b>Char 即时状态</b><span id="charRuntimeState">平静</span></div><div class="char-runtime-pill" id="charRuntimePill">平静</div>';
+    settingsFirst.appendChild(rt)
+  }
+  const oldRenderBehavior=renderCharBehaviorSettings;
+  renderCharBehaviorSettings=function(){oldRenderBehavior();renderRuntimeState()};
+
+  // 所有晏景 API 调用都带上即时情绪；世界书仍由原 charApiText 注入。
+  const rawCharApiText=charApiText;
+  charApiText=async function(prompt,feature='wechat',charId='yanjing'){
+    if(charId==='yanjing')prompt=`[晏景当前即时状态：${charStateText()}。这只是当前情绪/精力，不要机械复述数值。]\n${prompt}`;
+    return rawCharApiText(prompt,feature,charId)
+  };
+
+  /* ---------- 4. 一起听：接受/拒绝同时受世界书 + 即时情绪影响 ---------- */
+  charDecideTogether=async function(message){
+    if(!message)return;
+    if(state.charBehavior.togetherDecision===false){
+      acceptTogetherInvite(message);nudgeCharState(3,-3,1);return
+    }
+    message.decision='pending';save();renderChat();
+    let accepted=null,reply='';
+    const apiReply=await charApiText(
+      `月月邀请你一起听《${message.song||'当前歌曲'}》，歌手 ${message.artist||'未知'}。你可以接受，也可以因为自己的情绪、精力、正在做的事而拒绝。请基于角色设定、世界书和当前状态自主决定。第一行只能写 ACCEPT 或 DECLINE，第二行写一句不超过20字的自然回复。`,
+      'together'
+    );
+    if(apiReply){
+      const lines=apiReply.split(/\r?\n/);const first=(lines[0]||'').toUpperCase();
+      if(first.includes('ACCEPT'))accepted=true;if(first.includes('DECLINE'))accepted=false;
+      reply=lines.slice(1).join(' ').trim()
+    }
+    if(accepted===null){
+      settleCharState();
+      const p=Math.max(.18,Math.min(.9,.28+cs.energy*.004+cs.closeness*.003+cs.mood*.0015));
+      accepted=Math.random()<p
+    }
+    if(accepted){
+      acceptTogetherInvite(message);nudgeCharState(4,-4,1);
+      state.chat.push({id:'listenreply'+Date.now(),role:'assistant',text:reply||['来。耳机戴好。','可以，陪你听一会儿。','嗯，这首一起听。'][Math.floor(Math.random()*3)],auto:true})
+    }else{
+      message.accepted=false;message.decision='declined';state.listenTogether.active=false;state.listenTogether.invited=false;
+      nudgeCharState(-1,2,0);
+      const low=cs.energy<35;
+      state.chat.push({id:'listenreply'+Date.now(),role:'assistant',text:reply||(low?'今天有点累，这首你先听，我晚点陪你。':['这次先不陪你听。','现在不太想听歌，下一首再叫我。','你先听，我想安静一会儿。'][Math.floor(Math.random()*3)]),auto:true});
+      toast(`${displayName()}这次没有接受`)
+    }
+    save();renderChat();renderTogether();renderIsland()
+  };
+
+  /* ---------- 5. 用户主动拨号：Char 也可以拒绝 ---------- */
+  async function requestCharCall(type='voice'){
+    const isVideo=type==='video',label=isVideo?'视频通话':'语音通话';
+    $('plusPanel')?.classList.remove('show');
+    state.chat.push({id:'usercall'+Date.now(),role:'user',type:'text',text:`[发起${label}]`,time:Date.now(),auto:true});
+    save();renderChat();
+    let accepted=null,reply='';
+    const apiReply=await charApiText(
+      `月月现在主动给你发起${label}。你有自己的情绪和安排，可以接，也可以拒绝。结合世界书、你当前的情绪和精力自主决定。第一行只能写 ACCEPT 或 DECLINE；第二行写一句不超过20字的自然回复。`,
+      'wechat'
+    );
+    if(apiReply){
+      const lines=apiReply.split(/\r?\n/),first=(lines[0]||'').toUpperCase();
+      if(first.includes('ACCEPT'))accepted=true;if(first.includes('DECLINE'))accepted=false;
+      reply=lines.slice(1).join(' ').trim()
+    }
+    if(accepted===null){
+      settleCharState();
+      let p=.22+cs.energy*.004+cs.closeness*.0025+cs.mood*.001;
+      if(isVideo)p-=.09;
+      accepted=Math.random()<Math.max(.12,Math.min(.86,p))
+    }
+    if(!accepted){
+      nudgeCharState(-1,1,0);
+      state.chat.push({id:'calldecline'+Date.now(),role:'assistant',text:reply||(cs.energy<35?'现在没什么精力接电话，晚点找你。':isVideo?'现在不想开视频。语音也许晚点。':'现在不太方便接，等我一会儿。'),time:Date.now(),auto:true});
+      save();renderChat();toast(`${displayName()}拒绝了${label}`);return
+    }
+    nudgeCharState(2,isVideo?-7:-5,1);
+    if(reply)state.chat.push({id:'callaccept'+Date.now(),role:'assistant',text:reply,time:Date.now(),auto:true});
+    charCallType=isVideo?'video':'voice';renderCallAvatar();
+    $('charCallScreen').classList.remove('active','video');if(isVideo)$('charCallScreen').classList.add('video');
+    $('charCallScreen').classList.add('show');startCharCall();save();renderChat()
+  }
+  window.requestCharCall=requestCharCall;
+
+  const voicePlus=document.querySelector('.plus-item[data-msg="voice"]');
+  if(voicePlus){voicePlus.dataset.msg='voicecall';voicePlus.innerHTML='<div class="plus-icon">☎</div>语音通话';voicePlus.onclick=()=>requestCharCall('voice')}
+  const videoPlus=document.querySelector('.plus-item[data-msg="video"]');
+  if(videoPlus){videoPlus.onclick=()=>requestCharCall('video')}
+
+  /* 用户拒接晏景主动来电，也会轻微影响即时状态。 */
+  const reject=$('rejectCharCall');if(reject)reject.onclick=()=>{nudgeCharState(-2,1,0);closeCharCall(true)};
+
+  /* ---------- 6. iPhone 输入聚焦：不让 Safari 把聊天头推走 ---------- */
+  ['chatInput','togetherChatInput'].forEach(id=>{
+    const input=$(id);if(!input)return;
+    input.addEventListener('focus',()=>{
+      const page=id==='chatInput'?$('yanjingChat'):$('togetherChatPage');
+      requestAnimationFrame(()=>{if(page)page.scrollTop=0})
+    })
+  });
+
+  syncYanjingDisplayName();renderRuntimeState();save(false);
+  console.info('[Ephemeris v0.13.4] global audio / locked chat headers / remark / runtime char state ready')
 })();
 </script>
 
