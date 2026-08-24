@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://music.yuncan.xyz" crossorigin>
 <link rel="preconnect" href="https://api.injahow.cn" crossorigin>
-<title>月序 · v0.13.17</title>
+<title>月序 · v0.13.18</title>
 <style>
 :root{
   --ink:#2c282a;--muted:#8f858a;--glass:rgba(255,255,255,.62);--glass2:rgba(255,255,255,.82);
@@ -4342,6 +4342,24 @@ button.chat-system-recall.char{text-decoration:underline;text-decoration-color:#
 @keyframes dragonWingL{from{transform:scaleX(-1) rotate(-7deg)}to{transform:scaleX(-1) rotate(3deg)}}
 @keyframes dragonWingR{from{transform:rotate(-7deg)}to{transform:rotate(3deg)}}
 
+
+/* ===== v0.13.18 · 番茄钟专注 ===== */
+.tomato-card{background:rgba(255,255,255,.86);border:1px solid rgba(217,149,174,.16);border-radius:18px;padding:14px;margin:10px 0 4px;box-shadow:0 10px 28px rgba(70,45,55,.035)}
+.tomato-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.tomato-top b{display:block;font-size:13px;color:#312b2e}
+.tomato-top span{display:block;font-size:8px;color:#999;margin-top:4px}
+.tomato-top em{font-style:normal;font-size:9px;color:#a06f82;background:#f8edf2;border-radius:999px;padding:6px 9px;white-space:nowrap}
+.tomato-dots{display:flex;justify-content:center;gap:8px;margin:14px 0}
+.tomato-dots i{width:8px;height:8px;border-radius:50%;background:#eadfe4;box-shadow:inset 0 0 0 1px rgba(156,112,130,.08)}
+.tomato-dots i.done{background:#d995ae}
+.tomato-dots i.current{background:#fff;box-shadow:0 0 0 2px #d995ae}
+.tomato-settings{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:8px}
+.tomato-settings label{font-size:7px;color:#8f858a;text-align:center}
+.tomato-settings input{margin-top:5px;width:100%;border:1px solid #e5dce0;background:#fff;border-radius:10px;padding:8px 4px;text-align:center;color:#4d4448}
+.tomato-bg-note{margin:9px 2px 0;font-size:7px;line-height:1.55;color:#aaa;text-align:center}
+.focus-stage.tomato-break .focus-ring{background:conic-gradient(#9fb8aa var(--p,0%),#eee var(--p,0%))}
+.focus-stage.tomato-break .focus-current-label{color:#6e8578}
+
 </style>
 
 <style id="cet-pdf-fullscreen-fix">
@@ -6598,8 +6616,26 @@ button.chat-system-recall.char{text-decoration:underline;text-decoration-color:#
   <div class="screen-body">
     <div class="focus-stage" id="focusStage">
       <div class="focus-mode-tabs">
+        <button data-focus-mode="tomato">番茄钟</button>
         <button class="active" data-focus-mode="task">跟随任务</button>
         <button data-focus-mode="custom">自定义</button>
+      </div>
+
+      <div class="focus-mode-panel" data-focus-panel="tomato">
+        <div class="tomato-card">
+          <div class="tomato-top">
+            <div><b id="tomatoPhaseTitle">专注</b><span id="tomatoPhaseHint">25 分钟专注 · 5 分钟休息</span></div>
+            <em id="tomatoRoundText">第 1 / 4 轮</em>
+          </div>
+          <div class="tomato-dots" id="tomatoDots"></div>
+          <div class="tomato-settings">
+            <label>专注<input id="tomatoFocusMin" type="number" min="5" max="120" value="25"></label>
+            <label>短休息<input id="tomatoShortMin" type="number" min="1" max="30" value="5"></label>
+            <label>长休息<input id="tomatoLongMin" type="number" min="5" max="60" value="15"></label>
+          </div>
+          <button class="btn soft" id="tomatoApply" style="width:100%">应用番茄设置</button>
+          <p class="tomato-bg-note">切到后台后计时继续按真实时间流逝；回来时会自动校准，不会因为浏览器暂停动画而停表。</p>
+        </div>
       </div>
 
       <div class="focus-mode-panel active" data-focus-panel="task">
@@ -6792,7 +6828,8 @@ button.chat-system-recall.char{text-decoration:underline;text-decoration-color:#
 
     <div class="panel file-backup-card">
       <b>导出月序</b>
-      <p><b>全部备份</b>用于归档；<b>便携备份</b>用于换设备和日常保存。便携备份会保留壁纸、头像、自定义 App 图标、桌面布局、素材库相册、表情包、朋友圈和全部文字数据，只舍弃聊天图片/语音、备忘录附件等高体积媒体。API Key 两种都不会导出。</p>
+      <p><b>全部备份</b>用于归档；<b>便携备份</b>用于换设备和日常保存。两种都会保留壁纸、头像、桌面布局、API Endpoint / 模型 / 功能开关，并且现在会把 <b>API Key</b> 一起带走；便携备份仍只舍弃聊天图片/语音、备忘录附件等高体积媒体。</p>
+      <p style="margin-top:7px;color:#b45f70"><b>注意：</b>备份 JSON 现在包含你的 API Key，只保存到你自己的文件里，不要把备份发给别人。</p>
       <button class="btn pink" id="exportBackupBtn2" style="width:100%">全部备份 · 分享 / 存到“文件”</button>
       <button class="btn soft" id="exportLightBackupBtn" style="width:100%;margin-top:7px">便携备份 · 保留外观、相册和表情</button>
       <button class="btn soft" id="copyBackupBtn" style="width:100%;margin-top:7px">复制全部备份 JSON</button>
@@ -7339,6 +7376,8 @@ state.notes=state.notes.map((n,i)=>{
   return note
 });
 state.fileHelper ||= [];state.calendarRecords ||= {};state.favorites ||= [];state.wallet ||= {balance:10000,ledger:[],redSkin:'classic',transferSkin:'amber'};state.focus ||= {duration:1500,remaining:1500,running:false,endAt:null,taskId:'',customName:'',mode:'task',sessionStartAt:null,sessionLogged:false};
+state.focus.tomato ||= {focusMin:25,shortMin:5,longMin:15,rounds:4,completed:0,phase:'focus'};
+if(!['focus','short','long'].includes(state.focus.tomato.phase))state.focus.tomato.phase='focus';
 state.starPet ||= {name:'月灵',exp:0,coins:12,mood:72,fullness:68,lastDay:'',lastPetAt:0,lastSyncAt:Date.now(),lastSpeech:'',lastSpeechUntil:0,claimedDay:'',claimedValue:0,ownedScenes:['mist'],scene:'mist',gameDay:'',gameEarned:0,shopRefreshSerial:0,daily:{day:'',pet:0,feed:0,game:0,goodsCount:0,goods:{}}};
 state.starPet.lastSyncAt ||= Date.now();
 state.starPet.lastSpeech ||= '';
@@ -13337,6 +13376,10 @@ function fillFocusTasks(){
   else if(sel.options.length&&state.focus.mode!=='custom')state.focus.taskId=sel.value
 }
 function currentFocusName(){
+  if(state.focus.mode==='tomato'){
+    const phase=state.focus.tomato?.phase||'focus';
+    return phase==='focus'?'番茄专注':phase==='long'?'长休息':'短休息'
+  }
   if(state.focus.mode==='custom')return state.focus.customName||'自定义专注';
   const idx=Number(state.focus.taskId),t=state.tasks[idx];
   return t?.name||'专注'
@@ -13357,8 +13400,24 @@ function currentFocusRemaining(){
   if(state.focus.running&&state.focus.endAt)return Math.max(0,Math.ceil((state.focus.endAt-Date.now())/1000));
   return state.focus.remaining
 }
+function tomatoPhaseMinutes(){
+  const t=state.focus.tomato||{};
+  return t.phase==='long'?(t.longMin||15):t.phase==='short'?(t.shortMin||5):(t.focusMin||25)
+}
+function setTomatoPhase(phase,{keepRunning=false}={}){
+  state.focus.tomato ||= {focusMin:25,shortMin:5,longMin:15,rounds:4,completed:0,phase:'focus'};
+  state.focus.tomato.phase=phase;
+  const sec=Math.max(1,tomatoPhaseMinutes())*60;
+  state.focus.duration=sec;
+  state.focus.remaining=sec;
+  state.focus.endAt=keepRunning?Date.now()+sec*1000:null;
+  state.focus.running=!!keepRunning;
+  state.focus.sessionStartAt=keepRunning?Date.now():null;
+  state.focus.sessionLogged=false;
+}
 function selectFocusMode(mode){
-  state.focus.mode=mode==='custom'?'custom':'task';
+  state.focus.mode=['tomato','custom','task'].includes(mode)?mode:'task';
+  if(state.focus.mode==='tomato'&&!state.focus.running)setTomatoPhase(state.focus.tomato?.phase||'focus');
   document.querySelectorAll('[data-focus-mode]').forEach(b=>b.classList.toggle('active',b.dataset.focusMode===state.focus.mode));
   document.querySelectorAll('[data-focus-panel]').forEach(p=>p.classList.toggle('active',p.dataset.focusPanel===state.focus.mode));
   save();renderFocus()
@@ -13388,8 +13447,24 @@ function renderFocus(){
   $('focusStage').style.setProperty('--progress',p);
   $('focusStage').style.setProperty('--deg',p*360);
   $('focusStage').classList.toggle('running',state.focus.running);
+  $('focusStage').classList.toggle('tomato-break',state.focus.mode==='tomato'&&state.focus.tomato?.phase!=='focus');
   $('focusStart').textContent=state.focus.running?'暂停':'开始';
   $('focusCurrentLabel').textContent='当前：'+currentFocusName();
+
+  if($('tomatoPhaseTitle')){
+    const t=state.focus.tomato||{focusMin:25,shortMin:5,longMin:15,rounds:4,completed:0,phase:'focus'};
+    const phase=t.phase||'focus';
+    $('tomatoPhaseTitle').textContent=phase==='focus'?'专注':phase==='long'?'长休息':'短休息';
+    $('tomatoPhaseHint').textContent=phase==='focus'
+      ?`${t.focusMin||25} 分钟专注 · 完成后休息`
+      :phase==='long'?`${t.longMin||15} 分钟长休息`:`${t.shortMin||5} 分钟短休息`;
+    const rounds=Math.max(1,t.rounds||4),pos=(t.completed||0)%rounds;
+    $('tomatoRoundText').textContent=`第 ${Math.min(rounds,pos+1)} / ${rounds} 轮`;
+    $('tomatoDots').innerHTML=Array.from({length:rounds},(_,i)=>`<i class="${i<pos?'done':i===pos&&phase==='focus'?'current':''}"></i>`).join('');
+    if(document.activeElement!==$('tomatoFocusMin'))$('tomatoFocusMin').value=t.focusMin||25;
+    if(document.activeElement!==$('tomatoShortMin'))$('tomatoShortMin').value=t.shortMin||5;
+    if(document.activeElement!==$('tomatoLongMin'))$('tomatoLongMin').value=t.longMin||15;
+  }
   $('focusMeta').textContent=state.focus.running
     ?`正在流逝 · 已完成 ${Math.round(p*100)}%`
     :(left===0?'这一轮完成 ♡':`本轮 ${Math.round(total/60)} 分钟 · 已完成 ${Math.round(p*100)}%`);
@@ -13401,24 +13476,62 @@ function renderFocus(){
   renderFocusToday();
   save()
 }
+function finishFocusPhase(){
+  clearInterval(focusTimer);
+  const wasTomato=state.focus.mode==='tomato';
+  const phase=state.focus.tomato?.phase||'focus';
+
+  if(!state.focus.sessionLogged && (!wasTomato || phase==='focus')){
+    state.focus.sessionLogged=true;
+    logFocusSession(currentFocusName(),Math.round(state.focus.duration/60))
+  }
+
+  state.focus.running=false;state.focus.endAt=null;state.focus.remaining=0;state.focus.sessionStartAt=null;
+
+  if(wasTomato){
+    const t=state.focus.tomato;
+    if(phase==='focus'){
+      t.completed=(t.completed||0)+1;
+      const longBreak=t.completed%Math.max(1,t.rounds||4)===0;
+      setTomatoPhase(longBreak?'long':'short');
+      save();renderFocus();toast(longBreak?'完成 4 轮 · 长休息一下':'这一轮完成 · 休息 5 分钟');
+    }else{
+      setTomatoPhase('focus');
+      save();renderFocus();toast('休息结束 · 下一轮番茄准备好了');
+    }
+  }else{
+    save();renderFocus();toast('这一轮专注完成 ♡')
+  }
+}
+function reconcileFocusClock(){
+  if(!state.focus.running||!state.focus.endAt)return;
+  const left=currentFocusRemaining();
+  state.focus.remaining=left;
+  if(left<=0)finishFocusPhase();
+  else renderFocus()
+}
 function startFocusTicker(){
   clearInterval(focusTimer);
   focusTimer=setInterval(()=>{
-    const left=currentFocusRemaining();state.focus.remaining=left;renderFocus();
-    if(left<=0){
-      clearInterval(focusTimer);
-      if(!state.focus.sessionLogged){
-        state.focus.sessionLogged=true;
-        logFocusSession(currentFocusName(),Math.round(state.focus.duration/60))
-      }
-      state.focus.running=false;state.focus.endAt=null;state.focus.remaining=0;state.focus.sessionStartAt=null;
-      save();renderFocus();toast('这一轮专注完成 ♡')
-    }
+    const left=currentFocusRemaining();state.focus.remaining=left;
+    if(left<=0)finishFocusPhase();
+    else renderFocus();
   },500)
 }
 $('focusTaskSelect').onchange=e=>{state.focus.mode='task';state.focus.taskId=e.target.value;state.focus.customName='';save();renderFocus()};
 document.querySelectorAll('[data-focus-mode]').forEach(b=>b.onclick=()=>selectFocusMode(b.dataset.focusMode));
-document.querySelectorAll('[data-focus-min]').forEach(b=>b.onclick=()=>setFocusMinutes(+b.dataset.focusMin));
+document.querySelectorAll('[data-focus-min]').forEach(b=>b.onclick=()=>{
+  if(state.focus.mode==='tomato')state.focus.mode='custom';
+  setFocusMinutes(+b.dataset.focusMin)
+});
+$('tomatoApply').onclick=()=>{
+  const t=state.focus.tomato;
+  t.focusMin=Math.max(5,Math.min(120,+$('tomatoFocusMin').value||25));
+  t.shortMin=Math.max(1,Math.min(30,+$('tomatoShortMin').value||5));
+  t.longMin=Math.max(5,Math.min(60,+$('tomatoLongMin').value||15));
+  if(state.focus.mode==='tomato'&&!state.focus.running)setTomatoPhase(t.phase||'focus');
+  save();renderFocus();toast('番茄钟设置已保存')
+};
 $('focusAuto').onclick=()=>{
   state.focus.mode='task';state.focus.taskId=$('focusTaskSelect').value;
   const min=autoFocusMinutes();setFocusMinutes(min);toast(`已按任务自动设为 ${min} 分钟`)
@@ -13430,6 +13543,7 @@ $('focusUseCustom').onclick=()=>{
   setFocusMinutes(min);toast(`已设置：${name} · ${min} 分钟`)
 };
 $('focusStart').onclick=()=>{
+  if(state.focus.mode==='tomato'&&state.focus.remaining<=0)setTomatoPhase(state.focus.tomato?.phase||'focus');
   if(state.focus.remaining<=0)state.focus.remaining=state.focus.duration;
   if(state.focus.running){
     state.focus.remaining=currentFocusRemaining();state.focus.running=false;state.focus.endAt=null;clearInterval(focusTimer)
@@ -13456,7 +13570,12 @@ $('focusEnd').onclick=()=>{
  state.focus.running=false;state.focus.endAt=null;state.focus.remaining=0;state.focus.sessionStartAt=null;
  save();renderFocus();toast(mins?`本轮结束 · 已记录 ${mins} 分钟`:'本轮已结束')
 };
-if(state.focus.running&&state.focus.endAt){startFocusTicker()}
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden)reconcileFocusClock();
+});
+window.addEventListener('pageshow',reconcileFocusClock);
+window.addEventListener('focus',reconcileFocusClock);
+if(state.focus.running&&state.focus.endAt){reconcileFocusClock();startFocusTicker()}
 renderFocus();
 
 
@@ -13750,14 +13869,15 @@ function renderFiles(){
 }
 function makeBackupObject(){
   const cloned=JSON.parse(JSON.stringify(state));
-  // API key is stored in sessionStorage, but delete any legacy persisted copy too.
+  // API Key 平时仍只放 sessionStorage；只有用户主动导出备份时才写进备份文件。
   if(cloned.api)delete cloned.api.key;
   return{
     app:'Ephemeris',
-    version:'0.12.1',
+    version:'0.13.18',
     exportedAt:new Date().toISOString(),
-    note:'完整本地备份；不包含 API Key',
+    note:'完整本地备份；包含头像、壁纸、布局、API 配置与 API Key。请勿把备份文件分享给他人。',
     state:cloned,
+    secrets:{apiKey:sessionStorage.getItem('yue_api_key')||''},
     noteAssets:JSON.parse(JSON.stringify(noteAssetCache||{}))
   }
 }
@@ -13879,7 +13999,7 @@ function refreshAfterBackupImport(){
     'renderWechatAvatars','renderChat','renderEmojiPanel','renderNotes','renderDiaries','renderPhotos',
     'renderSecondApps','renderFocus','renderFiles','renderCalendar','renderSkinChoices','fillSettings',
     'renderMusicSpace','renderMusicLibrary','renderMusicSearchHistory','renderLyrics','renderTogether',
-    'renderWechatContacts','refreshWorldCharOptions'
+    'renderWechatContacts','refreshWorldCharOptions','fillSettings','renderApiStatus'
   ];
   for(const name of fns){
     try{if(typeof window[name]==='function')window[name]()}catch(e){console.warn('backup refresh',name,e)}
@@ -13891,6 +14011,7 @@ async function importBackupText(raw,sourceLabel='备份'){
   try{
     const parsed=JSON.parse(String(raw||'').trim());
     const incomingNoteAssets=parsed?.noteAssets&&typeof parsed.noteAssets==='object'&&!Array.isArray(parsed.noteAssets)?parsed.noteAssets:{};
+    const incomingApiKey=String(parsed?.secrets?.apiKey||parsed?.apiKey||parsed?.state?.api?.key||'').trim();
     let incoming=parsed?.state && typeof parsed.state==='object'?parsed.state:parsed;
     if(!incoming||typeof incoming!=='object')throw new Error('invalid backup');
 
@@ -13907,6 +14028,9 @@ async function importBackupText(raw,sourceLabel='备份'){
 
     state={...state,...incoming,photos:mergedPhotos};
     if(state.api)delete state.api.key;
+    if(incomingApiKey){
+      try{sessionStorage.setItem('yue_api_key',incomingApiKey)}catch(_){}
+    }
 
     photoDbHydrated=true;
     let photoDbOk=false;
@@ -15557,6 +15681,39 @@ function randomDistractors(current){
   return words.sort(()=>Math.random()-.5).slice(0,3)
 }
 let vocabRevealed=false,vocabSettled=false,vocabChoiceResult=null;
+let vocabReviewMode='normal';
+
+function pickNextVocabIndex({wrongOnly=false}={}){
+  const b=activeVocabBook(),words=vocabWords(),today=vocabDateKey(),current=currentVocabWord();
+  const currentWord=current?.word||'';
+
+  // 错词复习入口只在错词本里走；正常背词绝不因为刚答错就立刻把同一个词塞回来。
+  if(wrongOnly){
+    const candidates=(b.wrong||[])
+      .filter(word=>word!==currentWord)
+      .map(word=>words.findIndex(x=>x.word===word))
+      .filter(i=>i>=0);
+    if(candidates.length)return candidates[Math.floor(Math.random()*candidates.length)];
+  }
+
+  const fresh=[],dueNotToday=[],seenNotToday=[],fallback=[];
+  words.forEach((item,i)=>{
+    if(item.word===currentWord)return;
+    const r=b.records?.[item.word];
+    fallback.push(i);
+
+    // 正常每日背词：首先保证“今天没见过”的新词，一轮里尽量不重复。
+    if(!r){fresh.push(i);return}
+    if(r.lastSeen===today)return;
+
+    if(r.nextReview && r.nextReview<=today)dueNotToday.push(i);
+    else seenNotToday.push(i);
+  });
+
+  const pool=fresh.length?fresh:dueNotToday.length?dueNotToday:seenNotToday.length?seenNotToday:fallback;
+  return pool.length?pool[Math.floor(Math.random()*pool.length)]:Math.max(0,(b.currentIndex+1)%Math.max(1,words.length));
+}
+
 
 function renderVocabStudy(){
   ensureVocabDay();
@@ -15636,9 +15793,9 @@ function cetSingleMeaningMatch(input,target){const a=cetNormalizeMeaning(input),
 function cetMeaningMatch(input,meaning){return cetMeaningTokens(meaning).some(t=>cetSingleMeaningMatch(input,t))}
 function vocabKnowledgeReset(){const p=$('vocabKnowledgePanel');p.innerHTML='';p.classList.remove('show')}
 function vocabNextAfterKnowledge(){
- const b=activeVocabBook(),words=vocabWords(),w=currentVocabWord(),today=vocabDateKey(),due=[],fresh=[],other=[];
- words.forEach((item,i)=>{if(item.word===w.word)return;const r=b.records[item.word];if(r?.nextReview&&r.nextReview<=today)due.push(i);else if(!r)fresh.push(i);else other.push(i)});
- const pool=due.length?due:fresh.length?fresh:other;b.currentIndex=pool.length?pool[Math.floor(Math.random()*pool.length)]:(b.currentIndex+1)%words.length;save();renderVocabStudy();renderVocabHome()
+ const b=activeVocabBook();
+ b.currentIndex=pickNextVocabIndex({wrongOnly:vocabReviewMode==='wrong'});
+ save();renderVocabStudy();renderVocabHome()
 }
 function showUnknownVocab(){
  if(vocabSettled)return;const w=currentVocabWord();vocabChoiceResult=false;$('vocabRateRow').style.display='none';$('vocabReveal').classList.add('show');vocabRevealed=true;rateVocab('wrong',false);
@@ -15680,7 +15837,7 @@ function rateVocab(rate,advance=true){
   const rec=b.records[w.word]||{seen:0,score:0,nextReview:''};
   rec.seen+=1;rec.lastSeen=vocabDateKey();
   rec.score=rate==='know'?Math.min(5,(rec.score||0)+1):rate==='blur'?Math.max(0,(rec.score||0)):0;
-  const gap=rate==='know'?[1,2,4,7,14,30][rec.score]||30:rate==='blur'?1:0;
+  const gap=rate==='know'?[1,2,4,7,14,30][rec.score]||30:1;
   const nd=new Date();nd.setDate(nd.getDate()+gap);rec.nextReview=learningDateKey(nd);
   b.records[w.word]=rec;
 
@@ -15688,17 +15845,7 @@ function rateVocab(rate,advance=true){
   syncVocabTaskCompletion();
 
   if(advance){
-    const words=vocabWords(),today=vocabDateKey();
-    const due=[],fresh=[],other=[];
-    words.forEach((item,i)=>{
-      if(item.word===w.word)return;
-      const r=b.records[item.word];
-      if(r?.nextReview && r.nextReview<=today)due.push(i);
-      else if(!r)fresh.push(i);
-      else other.push(i)
-    });
-    const pool=due.length?due:fresh.length?fresh:other;
-    b.currentIndex=pool.length?pool[Math.floor(Math.random()*pool.length)]:(b.currentIndex+1)%words.length;
+    b.currentIndex=pickNextVocabIndex({wrongOnly:vocabReviewMode==='wrong'});
     save();
     setTimeout(()=>{renderVocabStudy();renderVocabHome()},80)
   }else{
@@ -15707,7 +15854,10 @@ function rateVocab(rate,advance=true){
 }
 document.querySelectorAll('[data-vocab-rate]').forEach(b=>b.onclick=()=>handleVocabKnowledge(b.dataset.vocabRate));
 document.querySelectorAll('[data-start-vocab]').forEach(b=>b.onclick=()=>{
+  vocabReviewMode='normal';
   activeVocabBook().direction=b.dataset.startVocab;
+  // 从“今天没见过”的词开始，避免继续停在刚才那个重复词上。
+  activeVocabBook().currentIndex=pickNextVocabIndex();
   save();showVocabView('study')
 });
 $('vocabBackHome').onclick=()=>showVocabView('home');
@@ -15732,17 +15882,8 @@ function submitVocabSpelling(){
 $('vocabSpellingSubmit').onclick=submitVocabSpelling;
 $('vocabSpellingInput').addEventListener('keydown',e=>{if(e.key==='Enter')submitVocabSpelling()});
 $('vocabSpellingNext').onclick=()=>{
-  const b=activeVocabBook(),words=vocabWords(),current=currentVocabWord(),today=vocabDateKey();
-  const due=[],fresh=[],other=[];
-  words.forEach((item,i)=>{
-    if(item.word===current.word)return;
-    const r=b.records[item.word];
-    if(r?.nextReview&&r.nextReview<=today)due.push(i);
-    else if(!r)fresh.push(i);
-    else other.push(i)
-  });
-  const pool=due.length?due:fresh.length?fresh:other;
-  b.currentIndex=pool.length?pool[Math.floor(Math.random()*pool.length)]:(b.currentIndex+1)%words.length;
+  const b=activeVocabBook();
+  b.currentIndex=pickNextVocabIndex({wrongOnly:vocabReviewMode==='wrong'});
   save();renderVocabStudy();renderVocabHome()
 };
 
@@ -15788,6 +15929,7 @@ function renderVocabList(){
   document.querySelectorAll('[data-vocab-open]').forEach(btn=>btn.onclick=()=>{
     const i=vocabWords().findIndex(w=>w.word===btn.dataset.vocabOpen);
     if(i>=0)activeVocabBook().currentIndex=i;
+    vocabReviewMode='normal';
     save();showVocabView('study')
   })
 }
@@ -15799,6 +15941,7 @@ document.querySelectorAll('[data-vocab-list]').forEach(b=>b.onclick=()=>{
 $('reviewWrongWords').onclick=()=>{
   const b=activeVocabBook();
   if(!b.wrong.length){toast('错词本还是空的');return}
+  vocabReviewMode='wrong';
   const word=b.wrong[Math.floor(Math.random()*b.wrong.length)];
   const i=vocabWords().findIndex(x=>x.word===word);if(i>=0)b.currentIndex=i;
   save();showVocabView('study')
@@ -15881,6 +16024,7 @@ $('vocabResumeToday').onclick=()=>showVocabView('study');
 $('vocabWrongReviewHome').onclick=()=>{
   const b=activeVocabBook();
   if(!b.wrong.length){toast('错词本还是空的');return}
+  vocabReviewMode='wrong';
   const word=b.wrong[Math.floor(Math.random()*b.wrong.length)],i=vocabWords().findIndex(x=>x.word===word);
   if(i>=0)b.currentIndex=i;save();showVocabView('study')
 };
@@ -19231,10 +19375,11 @@ html,body{width:100%!important;height:100%!important;overflow:hidden!important;m
 
     return{
       app:'Ephemeris',
-      version:'0.13.17-portable',
+      version:'0.13.18-portable',
       exportedAt:new Date().toISOString(),
-      note:'便携备份：保留壁纸、头像、自定义 App 图标、桌面布局、素材库相册、表情包、朋友圈，以及文字/设置/学习/聊天文字/世界书；不含聊天图片/语音和备忘录附件等高体积媒体。',
+      note:'便携备份：保留壁纸、头像、自定义 App 图标、桌面布局、素材库相册、表情包、朋友圈、API 配置与 API Key；不含聊天图片/语音和备忘录附件等高体积媒体。请勿把备份文件分享给他人。',
       state:cloned,
+      secrets:{apiKey:sessionStorage.getItem('yue_api_key')||''},
       noteAssets:{}
     }
   }
@@ -19249,7 +19394,7 @@ html,body{width:100%!important;height:100%!important;overflow:hidden!important;m
 
     try{
       if(navigator.share && navigator.canShare?.({files:[file]})){
-        await navigator.share({files:[file],title:'Ephemeris 便携备份',text:'保留壁纸、头像、桌面布局、素材库相册、表情包和朋友圈；不含聊天图片/语音与备忘录附件等高体积媒体。'});
+        await navigator.share({files:[file],title:'Ephemeris 便携备份',text:'保留壁纸、头像、布局、相册、表情包、朋友圈与 API 配置（含 Key）；请只保存到自己的文件。'});
         $('fileExportStatus').textContent='便携备份已交给系统分享菜单。';
         return
       }
@@ -19331,12 +19476,19 @@ html,body{width:100%!important;height:100%!important;overflow:hidden!important;m
 <script id="ephem-v01316-light-backup-note">
 (()=>{
   window.__ephemLightBackupProfile={
-    version:'0.13.17',
-    keeps:['wallpaper','avatars','appIcons','layout','photoLibrary','stickers','moments'],
+    version:'0.13.18',
+    keeps:['wallpaper','avatars','appIcons','layout','photoLibrary','stickers','moments','apiConfig','apiKey'],
     strips:['chatMedia','voiceMedia','noteAttachments']
   };
 })();
 </script>
 
+<script id="ephem-v01318-patch-note">
+window.__ephemPatch01318={
+  vocab:'normal study prefers unseen words; wrong/blur goes to review instead of immediate repeat',
+  backup:'avatars/wallpaper/layout/API config + API key exported and restored',
+  focus:'pomodoro mode + background real-time reconciliation'
+};
+</script>
 </body>
 </html>
