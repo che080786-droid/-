@@ -8517,6 +8517,10 @@ function renderDock(){
  bindAppEditButtons();
 }
 function openScreen(id){
+ if(id==='memory'){
+   location.href='memory.html?mode=memory';
+   return
+ }
  const el=$(id+'Screen');if(!el){toast('这个 App 还没接页面');return}
  startUsage(id);el.classList.add('active');
  if(id==='notes')renderNotes();
