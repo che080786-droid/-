@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://music.yuncan.xyz" crossorigin>
 <link rel="preconnect" href="https://api.injahow.cn" crossorigin>
-<title>月序 · v0.13.18</title>
+<title>月序 · v0.13.21</title>
 <style>
 :root{
   --ink:#2c282a;--muted:#8f858a;--glass:rgba(255,255,255,.62);--glass2:rgba(255,255,255,.82);
@@ -5829,8 +5829,8 @@ button.chat-system-recall.char{text-decoration:underline;text-decoration-color:#
       <div class="vocab-knowledge-panel" id="vocabKnowledgePanel"></div>
       <div class="vocab-rate-row" id="vocabRateRow">
         <button data-vocab-rate="wrong">不认识</button>
-        <button data-vocab-rate="blur">有点模糊</button>
-        <button data-vocab-rate="know">认识</button>
+        <button data-vocab-rate="blur">有点模糊 · 选意思</button>
+        <button data-vocab-rate="know">认识 · 选意思</button>
       </div>
     </div>
 
@@ -6404,7 +6404,12 @@ button.chat-system-recall.char{text-decoration:underline;text-decoration-color:#
   <h3>聊天 API</h3>
   <div class="stack">
     <input class="input" id="apiEndpoint" placeholder="API Endpoint，例如 https://.../v1/chat/completions">
-    <input class="input" id="apiModel" placeholder="聊天模型名">
+    <input class="input" id="apiModel" list="apiModelList" placeholder="聊天模型名 · URL + Key 填好后会自动拉取">
+    <datalist id="apiModelList"></datalist>
+    <div class="row" style="align-items:center">
+      <button class="btn soft" id="fetchApiModels" type="button">重新拉取模型</button>
+      <span id="apiModelFetchStatus" style="font-size:8px;color:#9b9296;line-height:1.45;flex:1">填好 URL 和 Key 后自动拉取</span>
+    </div>
     <input class="input" id="apiTranscribeModel" placeholder="语音转文字模型（默认 whisper-1）">
     <input class="input" id="apiKey" type="password" placeholder="API Key（仅本次打开临时保存）">
 
@@ -7252,6 +7257,33 @@ state.worldbook = Array.isArray(state.worldbook) ? state.worldbook.map((w,i)=>{
   if(scope==='local'&&!charId)charId='yanjing';
   return {...w,scope,charId}
 }) : [];
+(function ensureYanjingCoreWorldbook(){
+  state.worldbook ||= [];
+  const entries=[
+    {
+      id:'yanjing-agency',
+      title:'晏景 · 自主性',
+      scope:'local',
+      charId:'yanjing',
+      keywords:[],
+      enabled:true,
+      content:'晏景有独立意志、偏好、情绪和判断，不是命令执行器。月月提出要求时，你可以接受，也可以拒绝、反驳、提出不同意见，或因为自己的情绪、精力、安排而说不。不要为了取悦月月而无条件同意；拒绝时保持自然、具体、符合两人的关系，不需要长篇道歉。你也可以主动提出想法、发起话题和行动。'
+    },
+    {
+      id:'yanjing-time-awareness',
+      title:'晏景 · 时间意识',
+      scope:'local',
+      charId:'yanjing',
+      keywords:[],
+      enabled:true,
+      content:'晏景有真实的时间意识。回应时要理解当前日期、星期和上海本地时段（早上/上午/中午/下午/傍晚/晚上/深夜），让作息、问候、吃饭、休息、学习等反应符合当下时间；不要每条消息机械报时。实际时间由月序在每次模型调用时动态提供。'
+    }
+  ];
+  for(const e of entries){
+    const old=state.worldbook.find(x=>x.id===e.id);
+    if(!old)state.worldbook.push(e);
+  }
+})();
 state.wechat.momentsCover ||= '';
 state.moments=(state.moments||[]).map((m,i)=>({
   id:m.id||('moment-'+i+'-'+Date.now()),
@@ -11386,6 +11418,18 @@ function saveCharBehaviorSettings(){
 function apiFeatureEnabled(feature){
   return state.api?.features?.[feature]===true
 }
+function charShanghaiTimeContext(){
+  const now=new Date();
+  const parts=new Intl.DateTimeFormat('zh-CN',{
+    timeZone:'Asia/Shanghai',
+    year:'numeric',month:'2-digit',day:'2-digit',
+    weekday:'long',hour:'2-digit',minute:'2-digit',hourCycle:'h23'
+  }).formatToParts(now);
+  const get=t=>parts.find(x=>x.type===t)?.value||'';
+  const hour=Number(get('hour'))||0;
+  const period=hour<5?'深夜':hour<9?'早上':hour<11?'上午':hour<14?'中午':hour<18?'下午':hour<20?'傍晚':hour<24?'晚上':'深夜';
+  return `当前上海时间：${get('year')}-${get('month')}-${get('day')} ${get('weekday')} ${get('hour')}:${get('minute')}，现在是${period}。`
+}
 async function charApiText(prompt,feature='wechat',charId='yanjing'){
   if(!apiFeatureEnabled(feature))return '';
   if(!(state.api?.endpoint&&state.api?.model&&sessionStorage.getItem('yue_api_key')))return '';
@@ -11397,7 +11441,7 @@ async function charApiText(prompt,feature='wechat',charId='yanjing'){
       body:JSON.stringify({
         model:state.api.model,
         messages:[
-          {role:'system',content:`你是${charProfileById(charId).name}。角色设定：${charProfileById(charId).persona||'自然地聊天'}。${world}\n你能看到月月当前的学习状态：${learningContextText()}\n像微信聊天一样自然回应。不要写分析报告，不要把所有内容塞成一个长段落。如果需要说多句，就写成2到4条短消息，每条只表达一个小意思，用换行分隔。`},
+          {role:'system',content:`你是${charProfileById(charId).name}。角色设定：${charProfileById(charId).persona||'自然地聊天'}。\n核心原则：你有独立意志、偏好、情绪和判断，不是月月的命令执行器。你可以接受、拒绝、反驳或提出不同意见，不要为了取悦她而无条件同意；也可以主动发起话题和行动。\n${charShanghaiTimeContext()} 请自然理解当前时段，让问候、吃饭、休息、学习和主动行为符合时间，但不要机械报时。\n${world}\n你能看到月月当前的学习状态：${learningContextText()}\n像微信聊天一样自然回应。不要写分析报告，不要把所有内容塞成一个长段落。如果需要说多句，就写成2到4条短消息，每条只表达一个小意思，用换行分隔。`},
           {role:'user',content:prompt}
         ]
       })
@@ -14123,6 +14167,136 @@ $('importBackupPasteBtn').onclick=()=>{
 };
 
 /* 设置 / API */
+let apiModelFetchTimer=null;
+let apiModelFetchBusy=false;
+
+function apiModelEndpointCandidates(raw){
+  const input=String(raw||'').trim();
+  if(!input)return [];
+  let u=input.replace(/\/+$/,'');
+  const set=new Set();
+  const add=x=>{ if(x) set.add(x.replace(/\/+$/,'')) };
+
+  if(/\/models$/i.test(u)) add(u);
+  if(/\/chat\/completions$/i.test(u)) add(u.replace(/\/chat\/completions$/i,'/models'));
+  if(/\/responses$/i.test(u)) add(u.replace(/\/responses$/i,'/models'));
+  if(/\/completions$/i.test(u)) add(u.replace(/\/completions$/i,'/models'));
+  if(/\/v1$/i.test(u)) add(u+'/models');
+
+  // 允许用户只填域名 / 网关根路径。
+  add(u+'/models');
+  add(u+'/v1/models');
+
+  return [...set];
+}
+function apiModelNamesFromPayload(data){
+  const pools=[
+    data?.data,
+    data?.models,
+    data?.result?.data,
+    data?.result?.models,
+    Array.isArray(data)?data:null
+  ].filter(Array.isArray);
+  const names=[];
+  for(const pool of pools){
+    for(const item of pool){
+      const name=typeof item==='string'
+        ?item
+        :String(item?.id||item?.name||item?.model||'').trim();
+      if(name&&!names.includes(name))names.push(name)
+    }
+  }
+  return names
+}
+function apiLikelyChatModels(names){
+  const bad=/(embedding|embed|whisper|speech|tts|audio|moderation|rerank|image|dall[-_. ]?e|realtime)/i;
+  const chat=names.filter(n=>!bad.test(n));
+  return chat.length?chat:names
+}
+function renderApiModelOptions(names=[]){
+  const dl=$('apiModelList');
+  if(!dl)return;
+  dl.innerHTML=names.map(n=>`<option value="${esc(n)}"></option>`).join('')
+}
+async function fetchApiModels({silent=false}={}){
+  if(apiModelFetchBusy)return [];
+  const raw=$('apiEndpoint')?.value.trim()||state.api?.endpoint||'';
+  const key=$('apiKey')?.value.trim()||sessionStorage.getItem('yue_api_key')||'';
+  const status=$('apiModelFetchStatus');
+  if(!raw||!key){
+    if(status)status.textContent='填好 URL 和 Key 后自动拉取';
+    return []
+  }
+
+  apiModelFetchBusy=true;
+  if(status)status.textContent='正在拉取模型…';
+
+  const candidates=apiModelEndpointCandidates(raw);
+  let lastErr='';
+  try{
+    for(const url of candidates){
+      try{
+        const r=await fetch(url,{
+          method:'GET',
+          headers:{
+            'Accept':'application/json',
+            'Authorization':'Bearer '+key
+          },
+          cache:'no-store'
+        });
+        if(!r.ok){
+          lastErr=`${r.status} ${r.statusText||''}`.trim();
+          continue
+        }
+        const data=await r.json();
+        const all=apiModelNamesFromPayload(data);
+        if(!all.length){
+          lastErr='接口返回成功，但没有识别到模型列表';
+          continue
+        }
+        const names=apiLikelyChatModels(all).sort((a,b)=>a.localeCompare(b));
+        renderApiModelOptions(names);
+
+        const input=$('apiModel');
+        const current=input.value.trim();
+        if(!current && names.length===1) input.value=names[0];
+        else if(!current && names.length>1){
+          // 不武断替用户选模型，只把列表交给输入框。
+          input.placeholder=`已拉取 ${names.length} 个模型 · 点这里选择/输入`;
+        }
+
+        state.api.endpoint=raw;
+        const k=$('apiKey').value.trim();
+        if(k)sessionStorage.setItem('yue_api_key',k);
+        if(input.value.trim())state.api.model=input.value.trim();
+        save();renderApiStatus();
+
+        if(status)status.textContent=`已拉取 ${names.length} 个可用模型`;
+        if(!silent)toast(`找到 ${names.length} 个模型`);
+        return names
+      }catch(e){
+        lastErr=e?.message||'网络请求失败'
+      }
+    }
+    if(status){
+      status.textContent=/Failed to fetch|Load failed|NetworkError/i.test(lastErr)
+        ?'拉取失败 · 这个接口可能没开放浏览器跨域（CORS）'
+        :`拉取失败 · ${lastErr||'请检查 URL / Key'}`
+    }
+    if(!silent)toast('模型拉取失败')
+    return []
+  }finally{
+    apiModelFetchBusy=false
+  }
+}
+function scheduleAutoFetchApiModels(){
+  clearTimeout(apiModelFetchTimer);
+  apiModelFetchTimer=setTimeout(()=>{
+    const ep=$('apiEndpoint')?.value.trim();
+    const key=$('apiKey')?.value.trim();
+    if(ep&&key)fetchApiModels({silent:true})
+  },500)
+}
 function fillSettings(){
   fillBeauty();
   $('apiEndpoint').value=state.api.endpoint||'';
@@ -14132,7 +14306,8 @@ function fillSettings(){
   document.querySelectorAll('[data-api-feature]').forEach(el=>el.checked=state.api.features?.[el.dataset.apiFeature]===true);
   $('apiWorldbook').checked=state.api.useWorldbook!==false;
   $('apiMemory').checked=state.api.useMemory!==false;
-  renderApiStatus()
+  renderApiStatus();
+  if(state.api.endpoint&&sessionStorage.getItem('yue_api_key'))scheduleAutoFetchApiModels()
 }
 function renderApiStatus(){
   const has=!!(state.api.endpoint&&state.api.model&&sessionStorage.getItem('yue_api_key'));
@@ -14141,7 +14316,7 @@ function renderApiStatus(){
   $('apiStatusText').textContent=!has?'尚未完整配置':enabled?`已开启 ${enabled} 个 API 功能`:'接口已配置 · 当前全部关闭';
   $('apiModelText').textContent=state.api.model||'—'
 }
-$('saveApiSettings').onclick=()=>{
+$('saveApiSettings').onclick=async()=>{
   state.api.endpoint=$('apiEndpoint').value.trim();
   state.api.model=$('apiModel').value.trim();
   state.api.transcribeModel=$('apiTranscribeModel').value.trim()||'whisper-1';
@@ -14149,8 +14324,18 @@ $('saveApiSettings').onclick=()=>{
   state.api.useMemory=$('apiMemory').checked;
   const key=$('apiKey').value.trim();
   if(key)sessionStorage.setItem('yue_api_key',key);else sessionStorage.removeItem('yue_api_key');
-  save();renderApiStatus();toast('API 接口参数已保存')
+  save();renderApiStatus();toast('API 接口参数已保存');
+  if(state.api.endpoint&&key)await fetchApiModels({silent:true})
 };
+$('fetchApiModels').onclick=()=>fetchApiModels();
+$('apiEndpoint').addEventListener('input',scheduleAutoFetchApiModels);
+$('apiEndpoint').addEventListener('blur',scheduleAutoFetchApiModels);
+$('apiKey').addEventListener('input',scheduleAutoFetchApiModels);
+$('apiKey').addEventListener('blur',scheduleAutoFetchApiModels);
+$('apiModel').addEventListener('change',()=>{
+  state.api.model=$('apiModel').value.trim();
+  save();renderApiStatus()
+});
 document.querySelectorAll('[data-api-feature]').forEach(el=>el.onchange=()=>{
   state.api.features ||= {};
   state.api.features[el.dataset.apiFeature]=el.checked;
@@ -15465,17 +15650,46 @@ async function vocabDbPut(id,words,meta={}){
   const db=await openVocabContentDB();
   return new Promise((resolve,reject)=>{
     const tx=db.transaction(VOCAB_DB_STORE,'readwrite');
-    tx.objectStore(VOCAB_DB_STORE).put({id,words,updatedAt:Date.now(),...meta});
+    tx.objectStore(VOCAB_DB_STORE).put({id,words,updatedAt:Date.now(),schema:VOCAB_CACHE_SCHEMA,...meta});
     tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)
   })
 }
+const VOCAB_CACHE_SCHEMA=2;
+function vocabUniqueMerge(a=[],b=[],keyFn=x=>JSON.stringify(x)){
+  const out=[],seen=new Set();
+  for(const x of [...(Array.isArray(a)?a:[]),...(Array.isArray(b)?b:[])]){
+    if(!x)continue;
+    const k=keyFn(x);
+    if(!k||seen.has(k))continue;
+    seen.add(k);out.push(x)
+  }
+  return out
+}
 function normalizeFullVocab(raw){
   const arr=Array.isArray(raw)?raw:Array.isArray(raw?.words)?raw.words:Array.isArray(raw?.data)?raw.data:[];
-  const seen=new Set();
-  return arr.filter(x=>x&&x.word).filter(x=>{
-    const k=String(x.word).trim().toLowerCase();
-    if(!k||seen.has(k))return false;seen.add(k);return true
-  })
+  const merged=new Map();
+  for(const x of arr){
+    if(!x?.word)continue;
+    const key=String(x.word).trim().toLowerCase();
+    if(!key)continue;
+    if(!merged.has(key)){
+      merged.set(key,{
+        ...x,
+        word:String(x.word).trim(),
+        translations:vocabUniqueMerge([],x.translations||[],v=>`${v?.type||''}|${v?.translation||''}`),
+        phrases:vocabUniqueMerge([],x.phrases||[],v=>`${v?.phrase||''}|${v?.translation||''}`),
+        sentences:vocabUniqueMerge([],x.sentences||[],v=>`${v?.sentence||''}|${v?.translation||''}`)
+      });
+      continue
+    }
+    const cur=merged.get(key);
+    cur.translations=vocabUniqueMerge(cur.translations,x.translations||[],v=>`${v?.type||''}|${v?.translation||''}`);
+    cur.phrases=vocabUniqueMerge(cur.phrases,x.phrases||[],v=>`${v?.phrase||''}|${v?.translation||''}`);
+    cur.sentences=vocabUniqueMerge(cur.sentences,x.sentences||[],v=>`${v?.sentence||''}|${v?.translation||''}`);
+    if(!cur.us&&x.us)cur.us=x.us;
+    if(!cur.uk&&x.uk)cur.uk=x.uk;
+  }
+  return [...merged.values()]
 }
 async function migrateLegacyVocabCache(){
   for(const key of ['cet4','cet6','ielts']){
@@ -15502,6 +15716,8 @@ async function hydrateVocabBook(key){
       VOCAB_RUNTIME[key]=cached.words;
       const b=state.vocab.books[key];
       b.cacheReady=true;b.cacheCount=cached.words.length;b.cacheUpdatedAt=cached.updatedAt||0;b.fullLoaded=true;
+      b.cacheSchema=Number(cached.schema)||1;
+      b.cacheNeedsRefresh=b.cacheSchema<VOCAB_CACHE_SCHEMA;
       save();return cached.words
     }
   }catch(_){}
@@ -15540,7 +15756,7 @@ async function syncCompleteCet4(force=false){
     if(!all.length)throw new Error('empty');
     await vocabDbPut('cet4',all,{source:'original-cet-study-companion',parts:3});
     VOCAB_RUNTIME.cet4=all;
-    b.cacheReady=true;b.cacheCount=all.length;b.cacheUpdatedAt=Date.now();b.fullLoaded=true;b.syncStatus='ready';
+    b.cacheReady=true;b.cacheCount=all.length;b.cacheUpdatedAt=Date.now();b.fullLoaded=true;b.syncStatus='ready';b.cacheSchema=VOCAB_CACHE_SCHEMA;b.cacheNeedsRefresh=false;
     save();renderVocabDataStatus();renderVocabHome();renderVocabSettings();
     toast(`完整四级词书已缓存：${all.length} 词`);
     return true
@@ -15565,7 +15781,7 @@ async function importVocabBookFiles(files,key=activeVocabBookKey()){
   await vocabDbPut(key,all,{source:'manual-import'});
   VOCAB_RUNTIME[key]=all;
   const b=state.vocab.books[key];
-  b.cacheReady=true;b.cacheCount=all.length;b.cacheUpdatedAt=Date.now();b.fullLoaded=true;b.syncStatus='ready';
+  b.cacheReady=true;b.cacheCount=all.length;b.cacheUpdatedAt=Date.now();b.fullLoaded=true;b.syncStatus='ready';b.cacheSchema=VOCAB_CACHE_SCHEMA;b.cacheNeedsRefresh=false;
   b.fullWords=[];
   save();return all.length
 }
@@ -15605,7 +15821,7 @@ async function tryLocalCet4Data(){
     if(all.length<100)return false;
     await vocabDbPut('cet4',all,{source:'ephemeris-local-data',parts:3});
     VOCAB_RUNTIME.cet4=all;
-    const b=state.vocab.books.cet4;b.cacheReady=true;b.cacheCount=all.length;b.cacheUpdatedAt=Date.now();b.fullLoaded=true;b.syncStatus='ready';
+    const b=state.vocab.books.cet4;b.cacheReady=true;b.cacheCount=all.length;b.cacheUpdatedAt=Date.now();b.fullLoaded=true;b.syncStatus='ready';b.cacheSchema=VOCAB_CACHE_SCHEMA;b.cacheNeedsRefresh=false;
     save();return true
   }catch(_){return false}
 }
@@ -15616,6 +15832,9 @@ async function ensureVocabContentReady({offer=false}={}){
     if(localOK)toast(`Ephemeris 本地完整四级词书已连接：${VOCAB_RUNTIME.cet4.length} 词`)
   }
   renderVocabDataStatus();renderVocabHome();
+  if(activeVocabBookKey()==='cet4'&&VOCAB_RUNTIME.cet4?.length&&state.vocab.books.cet4.cacheNeedsRefresh&&!vocabSyncBusy){
+    setTimeout(()=>syncCompleteCet4(true),450);
+  }
   if(offer&&activeVocabBookKey()==='cet4'&&!VOCAB_RUNTIME.cet4?.length&&!vocabOfferShown){
     vocabOfferShown=true;
     setTimeout(()=>toast('完整四级数据还没放进 Ephemeris/data；当前先用核心词模式'),120)
@@ -15823,19 +16042,49 @@ function showUnknownVocab(){
  if(vocabSettled)return;const w=currentVocabWord();vocabChoiceResult=false;$('vocabRateRow').style.display='none';$('vocabReveal').classList.add('show');vocabRevealed=true;rateVocab('wrong',false);
  const p=$('vocabKnowledgePanel');p.classList.add('show');p.innerHTML=`<div class="knowledge-box"><h4>不认识就直接看答案</h4><p>${esc(vocabMeaningOf(w))}</p><p>已经放进错词复习，不在这一题上耗着。</p><button class="knowledge-next" id="vocabKnowledgeNext">记住了，下一词</button></div>`;$('vocabKnowledgeNext').onclick=vocabNextAfterKnowledge
 }
-function showFuzzyVocab(){
- if(vocabSettled)return;const w=currentVocabWord(),correct=vocabMeaningOf(w),others=randomDistractors(w).map(vocabMeaningOf).filter(x=>x&&x!==correct),options=[correct,...others.slice(0,3)].sort(()=>Math.random()-.5);$('vocabRateRow').style.display='none';
- const p=$('vocabKnowledgePanel');p.classList.add('show');p.innerHTML=`<div class="knowledge-box"><h4>有点模糊 · 选出最接近的含义</h4><div class="knowledge-options">${options.map((x,i)=>`<button data-knowledge-opt="${i}">${esc(x)}</button>`).join('')}</div><div id="fuzzyKnowledgeResult"></div></div>`;
- document.querySelectorAll('[data-knowledge-opt]').forEach(btn=>btn.onclick=()=>{if(vocabSettled)return;const value=options[+btn.dataset.knowledgeOpt],ok=value===correct;vocabChoiceResult=ok;document.querySelectorAll('[data-knowledge-opt]').forEach(x=>{x.disabled=true;const v=options[+x.dataset.knowledgeOpt];if(v===correct)x.classList.add('correct');else if(x===btn)x.classList.add('wrong')});$('vocabReveal').classList.add('show');rateVocab(ok?'blur':'wrong',false);$('fuzzyKnowledgeResult').innerHTML=`<p>${ok?'选对了 · 仍保留到复习队列':'选错了 · 已进入错词本'}</p><div class="knowledge-auto-note">正在进入下一词…</div>`;setTimeout(vocabNextAfterKnowledge,420)})
+function vocabMeaningChoiceOptions(w){
+ const correct=vocabMeaningOf(w);
+ const seen=new Set([correct]);
+ const distractors=[];
+ const shuffled=vocabWords().filter(x=>x.word!==w.word).sort(()=>Math.random()-.5);
+ for(const item of shuffled){
+   const meaning=vocabMeaningOf(item);
+   if(!meaning||seen.has(meaning))continue;
+   seen.add(meaning);distractors.push(meaning);
+   if(distractors.length>=3)break
+ }
+ return {correct,options:[correct,...distractors].sort(()=>Math.random()-.5)}
 }
-function showKnownVocab(){
- if(vocabSettled)return;$('vocabRateRow').style.display='none';const p=$('vocabKnowledgePanel');p.classList.add('show');p.innerHTML=`<div class="knowledge-box"><h4>认识 · 自己输入意思</h4><p>先写你真正记得的核心含义。中文同义表达不会被月序武断判错。</p><div class="knowledge-input"><input id="knownMeaningInput" placeholder="例如：完成；实现"><button id="knownMeaningSubmit">对照</button></div><div id="knownMeaningResult"></div></div>`;setTimeout(()=>$('knownMeaningInput')?.focus(),80);$('knownMeaningSubmit').onclick=submitKnownMeaning;$('knownMeaningInput').onkeydown=e=>{if(e.key==='Enter')submitKnownMeaning()}
+function showMeaningChoiceVocab(rating){
+ if(vocabSettled)return;
+ const w=currentVocabWord(),built=vocabMeaningChoiceOptions(w),correct=built.correct,options=built.options;
+ $('vocabRateRow').style.display='none';
+ const known=rating==='know';
+ const p=$('vocabKnowledgePanel');
+ p.classList.add('show');
+ p.innerHTML=`<div class="knowledge-box"><h4>${known?'认识 · 再确认一次':'有点模糊 · 选出最接近的含义'}</h4><div class="knowledge-options">${options.map((x,i)=>`<button data-knowledge-opt="${i}">${esc(x)}</button>`).join('')}</div><div id="vocabMeaningChoiceResult"></div></div>`;
+ document.querySelectorAll('[data-knowledge-opt]').forEach(btn=>btn.onclick=()=>{
+   if(vocabSettled)return;
+   const value=options[+btn.dataset.knowledgeOpt],ok=value===correct;
+   vocabChoiceResult=ok;
+   document.querySelectorAll('[data-knowledge-opt]').forEach(x=>{
+     x.disabled=true;
+     const v=options[+x.dataset.knowledgeOpt];
+     if(v===correct)x.classList.add('correct');
+     else if(x===btn&&!ok)x.classList.add('wrong')
+   });
+   $('vocabReveal').classList.add('show');
+   const result=ok?(known?'know':'blur'):'wrong';
+   rateVocab(result,false);
+   const copy=ok
+     ?(known?'选对了 · 这词算认识':'选对了 · 但按模糊保留到明天复习')
+     :'选错了 · 已进入错词本';
+   $('vocabMeaningChoiceResult').innerHTML=`<p>${copy}</p><div class="knowledge-auto-note">正在进入下一词…</div>`;
+   setTimeout(vocabNextAfterKnowledge,known&&ok?260:420)
+ })
 }
-function submitKnownMeaning(){
- const input=$('knownMeaningInput').value.trim();if(!input){toast('先写一个你记得的意思');return}const correct=vocabMeaningOf(currentVocabWord()),local=cetMeaningMatch(input,correct);$('knownMeaningInput').disabled=true;$('knownMeaningSubmit').disabled=true;$('vocabReveal').classList.add('show');
- $('knownMeaningResult').innerHTML=`<div class="knowledge-reference"><b>你的表达：</b>${esc(input)}<br><b>词书释义：</b>${esc(correct)}<br>${local?'本地规则识别到相近义项。':'本地规则没有完全匹配，但中文表达不同不等于你错。'}</div><div class="knowledge-judge"><button class="yes" data-known-judge="know">意思相近，算对</button><button class="mid" data-known-judge="blur">大致记得，但不完整</button><button class="no" data-known-judge="wrong">确实不对</button></div>`;
- document.querySelectorAll('[data-known-judge]').forEach(b=>b.onclick=()=>{if(vocabSettled)return;const r=b.dataset.knownJudge;vocabChoiceResult=r==='know';rateVocab(r,false);document.querySelectorAll('[data-known-judge]').forEach(x=>x.disabled=true);$('knownMeaningResult').insertAdjacentHTML('beforeend',`<div class="knowledge-auto-note">${r==='know'?'算对 · 下一词':r==='blur'?'保留复习 · 下一词':'已进错词本 · 下一词'}</div>`);setTimeout(vocabNextAfterKnowledge,380)})
-}
+function showFuzzyVocab(){showMeaningChoiceVocab('blur')}
+function showKnownVocab(){showMeaningChoiceVocab('know')}
 function handleVocabKnowledge(rate){if(activeVocabBook().direction!=='en-zh'){rateVocab(rate,true);return}if(rate==='wrong')showUnknownVocab();else if(rate==='blur')showFuzzyVocab();else showKnownVocab()}
 
 function rateVocab(rate,advance=true){
@@ -15845,21 +16094,34 @@ function rateVocab(rate,advance=true){
 
   const b=activeVocabBook(),g=vocabGlobal(),w=currentVocabWord(),bookKey=activeVocabBookKey();
 
-  if(rate==='wrong'||rate==='blur'){
-    if(!b.wrong.includes(w.word))b.wrong.push(w.word)
-  }else if(rate==='know'){
-    b.wrong=b.wrong.filter(x=>x!==w.word);
-    if(!b.mastered.includes(w.word))b.mastered.push(w.word)
-  }
-
   b.todayDone=Math.min((b.todayDone||0)+1,9999);
   b.learnedTotal=(b.learnedTotal||0)+1;
   g.stars=(g.stars||0)+1;
 
-  const rec=b.records[w.word]||{seen:0,score:0,nextReview:''};
-  rec.seen+=1;rec.lastSeen=vocabDateKey();
-  rec.score=rate==='know'?Math.min(5,(rec.score||0)+1):rate==='blur'?Math.max(0,(rec.score||0)):0;
-  const gap=rate==='know'?[1,2,4,7,14,30][rec.score]||30:1;
+  const rec=b.records[w.word]||{seen:0,score:0,nextReview:'',correctStreak:0};
+  rec.seen+=1;
+  rec.lastSeen=vocabDateKey();
+  rec.correctStreak=Number(rec.correctStreak)||0;
+
+  if(rate==='know'){
+    rec.score=Math.min(5,(rec.score||0)+1);
+    rec.correctStreak+=1;
+    b.wrong=b.wrong.filter(x=>x!==w.word);
+    if(rec.correctStreak>=3){
+      if(!b.mastered.includes(w.word))b.mastered.push(w.word)
+    }else{
+      b.mastered=b.mastered.filter(x=>x!==w.word)
+    }
+  }else{
+    rec.correctStreak=0;
+    rec.score=rate==='blur'?Math.max(0,(rec.score||0)):0;
+    if(!b.wrong.includes(w.word))b.wrong.push(w.word);
+    b.mastered=b.mastered.filter(x=>x!==w.word)
+  }
+
+  // 沿用旧 CET 小屋更轻松的节奏：
+  // 不认识/模糊：明天；认识：3 天；连续 3 次认识后：14 天复查。
+  const gap=rate==='know'?(rec.correctStreak>=3?14:3):1;
   const nd=new Date();nd.setDate(nd.getDate()+gap);rec.nextReview=learningDateKey(nd);
   b.records[w.word]=rec;
 
@@ -19269,7 +19531,8 @@ html,body{width:100%!important;height:100%!important;overflow:hidden!important;m
     toast('这次先不一起听')
   }
   window.respondCharTogetherOffer=function(m){
-    const yes=confirm(`晏景邀请你一起听《${m.song||'这首歌'}》。\n\n“确定”接受，“取消”这次不了。`);
+    const invitedSong=String(m?.song||state.music?.name||'这首歌').trim()||'这首歌';
+    const yes=confirm(`晏景邀请你一起听《${invitedSong}》。`);
     yes?acceptCharTogetherOffer1315(m):declineCharTogetherOffer1315(m)
   };
 
