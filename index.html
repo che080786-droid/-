@@ -20196,9 +20196,38 @@ No Common Voice clips are redistributed in this build.
 <script id="ephem-english-mobile-bundle">
 (()=>{
 'use strict';
-const EN_VERSION='1.0.1-mobile';
+const EN_VERSION='1.0.2-mobile';
 const STORE_KEY='ephemerisEnglishProgress';
-const CHANGE_BASE='https://raw.githubusercontent.com/whyfail/changelife-frontend-listening/main/';
+const CHANGE_BASES=[
+ 'https://cdn.jsdelivr.net/gh/whyfail/changelife-frontend-listening@main/',
+ 'https://raw.githubusercontent.com/whyfail/changelife-frontend-listening/main/'
+];
+const CHANGE_CACHE_KEY='ephemerisChangeLifeTextCacheV1';
+function changeAssetCandidates(path){
+ return CHANGE_BASES.map(base=>base+String(path||'').replace(/^\/+/,''))
+}
+function readChangeCache(){
+ try{return JSON.parse(localStorage.getItem(CHANGE_CACHE_KEY)||'{}')||{}}catch(_){return {}}
+}
+function writeChangeCache(key,data){
+ try{
+  const c=readChangeCache();c[key]={savedAt:Date.now(),data};
+  localStorage.setItem(CHANGE_CACHE_KEY,JSON.stringify(c))
+ }catch(_){}
+}
+async function fetchChangeText(path,{json=false}={}){
+ const errs=[];
+ for(const url of changeAssetCandidates(path)){
+  try{
+   const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),12000);
+   const r=await fetch(url,{cache:'force-cache',signal:ctrl.signal,mode:'cors'});
+   clearTimeout(timer);
+   if(!r.ok)throw new Error(`HTTP ${r.status}`);
+   return json?await r.json():await r.text()
+  }catch(e){errs.push(`${new URL(url).host}: ${e?.name==='AbortError'?'timeout':(e?.message||'failed')}`)}
+ }
+ throw new Error('课程源暂时无法访问｜'+errs.join('｜'))
+}
 const $id=id=>document.getElementById(id);
 const escHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const todayKey=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
@@ -20227,19 +20256,44 @@ const LESSON_META=[
 ];
 const manifest=LESSON_META.map((x,i)=>({
  id:x[0],title:x[1],level:x[2],topic:x[3][0]||'daily',duration:i===12?338.745:120,
- audio:CHANGE_BASE+x[0]+'/audio.mp3',tags:x[3],source:'whyfail/changelife-frontend-listening',
+ audio:changeAssetCandidates(x[0]+'/audio.mp3')[0],audioSources:changeAssetCandidates(x[0]+'/audio.mp3'),tags:x[3],source:'whyfail/changelife-frontend-listening',
  license:'MIT',sourceUrl:'https://github.com/whyfail/changelife-frontend-listening',
  questions:i===12?['你听到的连读/弱读训练主要在练什么？','写下一个你最想模仿的自然口语形式。']:[`用一句话概括《${x[1]}》主要讲了什么？`,'写下一个你听清楚的具体细节。']
 }));
 let changeDataPromise=null;
-function loadRemoteScript(src){return new Promise((res,rej)=>{const old=[...document.scripts].find(s=>s.src===src);if(old){if(window.CHANGELIFE_LESSONS)return res();old.addEventListener('load',res,{once:true});old.addEventListener('error',rej,{once:true});return}const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
-async function loadChangeLife12(){if(changeDataPromise)return changeDataPromise;changeDataPromise=(async()=>{await loadRemoteScript(CHANGE_BASE+'content-data.js');return Array.isArray(window.CHANGELIFE_LESSONS)?window.CHANGELIFE_LESSONS:[]})();return changeDataPromise}
+function parseChangeLifeContentData(text){
+ const m=String(text||'').match(/window\.CHANGELIFE_LESSONS\s*=\s*(\[[\s\S]*\])\s*;?\s*$/);
+ if(!m)throw new Error('课程文本格式无法识别');
+ return JSON.parse(m[1])
+}
+async function loadChangeLife12(){
+ if(changeDataPromise)return changeDataPromise;
+ changeDataPromise=(async()=>{
+   const cached=readChangeCache()['content-data'];
+   if(Array.isArray(cached?.data)&&cached.data.length>=12)return cached.data;
+   try{
+     const text=await fetchChangeText('content-data.js');
+     const list=parseChangeLifeContentData(text);
+     if(Array.isArray(list)&&list.length){writeChangeCache('content-data',list);return list}
+     throw new Error('课程文本为空')
+   }catch(e){
+     if(Array.isArray(cached?.data)&&cached.data.length)return cached.data;
+     throw e
+   }
+ })();
+ return changeDataPromise
+}
 const ChangeLifeAdapter={
  async list(){return manifest},
  async get(id){
   const meta=manifest.find(x=>x.id===id);if(!meta)throw new Error('课程不存在');
   if(id==='13-connected-speech-practice'){
-   const r=await fetch(CHANGE_BASE+'13-connected-speech-practice/dialogue.json',{cache:'force-cache'});if(!r.ok)throw new Error('连读课程文本加载失败');const j=await r.json();
+   const cached=readChangeCache()['connected-speech'];
+   let j=cached?.data;
+   if(!j?.dialogue){
+    try{j=await fetchChangeText('13-connected-speech-practice/dialogue.json',{json:true});writeChangeCache('connected-speech',j)}
+    catch(e){if(!j?.dialogue)throw e}
+   }
    return {...meta,englishTranscript:(j.dialogue||[]).map(x=>x.english).join(' '),chineseTranscript:(j.dialogue||[]).map(x=>x.chinese).join(' '),segments:j.dialogue||[]}
   }
   const list=await loadChangeLife12();const l=list.find(x=>x.id===id);if(!l)throw new Error('课程文本加载失败');
@@ -20262,12 +20316,49 @@ const CommonVoiceAdapter={async listBatches(){return []},async list(){return []}
 
 // ---------- Unified player ----------
 class EnglishAudioPlayer{
- constructor(audio){this.audio=audio;this.segments=[];this.loopSentence=false;this.loopAll=false;this.active=-1;this.onSegment=null;this._bind()}
- _bind(){this.audio.addEventListener('timeupdate',()=>{this._sync();this.render?.()});this.audio.addEventListener('loadedmetadata',()=>this.render?.());this.audio.addEventListener('play',()=>this.render?.());this.audio.addEventListener('pause',()=>this.render?.());this.audio.addEventListener('ended',()=>{if(this.loopAll){this.audio.currentTime=0;this.audio.play().catch(()=>{})}this.render?.()})}
- set(src,segments=[]){if(this.audio.src!==src)this.audio.src=src;this.segments=segments;this.active=-1;this.audio.preload='metadata'}
- playPause(){this.audio.paused?this.audio.play().catch(()=>toastSafe('音频暂时播放失败')):this.audio.pause()}
+ constructor(audio){this.audio=audio;this.segments=[];this.loopSentence=false;this.loopAll=false;this.active=-1;this.onSegment=null;this.sources=[];this.sourceIndex=0;this.lastPlayWanted=false;this._bind()}
+ _bind(){
+  this.audio.addEventListener('timeupdate',()=>{this._sync();this.render?.()});
+  this.audio.addEventListener('loadedmetadata',()=>this.render?.());
+  this.audio.addEventListener('play',()=>{this.lastPlayWanted=true;this.render?.()});
+  this.audio.addEventListener('pause',()=>this.render?.());
+  this.audio.addEventListener('ended',()=>{this.lastPlayWanted=false;if(this.loopAll){this.audio.currentTime=0;this.audio.play().catch(()=>{})}this.render?.()});
+  this.audio.addEventListener('error',()=>this._fallbackSource())
+ }
+ set(src,segments=[],sources=[]){
+  this.sources=[...new Set((Array.isArray(sources)&&sources.length?sources:[src]).filter(Boolean))];
+  this.sourceIndex=0;
+  const first=this.sources[0]||src;
+  if(first&&this.audio.src!==first)this.audio.src=first;
+  this.segments=segments;this.active=-1;this.audio.preload='metadata'
+ }
+ _fallbackSource(){
+  if(this.sourceIndex+1>=this.sources.length){
+   toastSafe('课程音频源暂时访问不到，不是你的 Wi‑Fi / 5G 坏了');
+   return
+  }
+  const t=Number(this.audio.currentTime||0),wanted=this.lastPlayWanted;
+  this.sourceIndex+=1;
+  toastSafe('当前音频线路失败，正在切备用线路…');
+  this.audio.src=this.sources[this.sourceIndex];
+  this.audio.load();
+  const resume=()=>{
+   try{if(Number.isFinite(t)&&t>0)this.audio.currentTime=t}catch(_){}
+   if(wanted)this.audio.play().catch(()=>{});
+   this.audio.removeEventListener('loadedmetadata',resume)
+  };
+  this.audio.addEventListener('loadedmetadata',resume)
+ }
+ playPause(){
+  if(this.audio.paused){
+   this.lastPlayWanted=true;
+   this.audio.play().catch(()=>this._fallbackSource())
+  }else{
+   this.lastPlayWanted=false;this.audio.pause()
+  }
+ }
  seek(sec){this.audio.currentTime=Math.max(0,Math.min(Number.isFinite(this.audio.duration)?this.audio.duration:1e9,(this.audio.currentTime||0)+sec))}
- jump(t){this.audio.currentTime=Math.max(0,+t||0);this.audio.play().catch(()=>{})}
+ jump(t){this.audio.currentTime=Math.max(0,+t||0);this.lastPlayWanted=true;this.audio.play().catch(()=>this._fallbackSource())}
  rate(v){this.audio.playbackRate=+v||1}
  _sync(){const t=this.audio.currentTime;const i=this.segments.findIndex(s=>t>=Number(s.start||0)&&t<Number(s.end||Infinity));if(i!==this.active){this.active=i;this.onSegment?.(i)}if(this.loopSentence&&i>=0){const s=this.segments[i];if(t>=Number(s.end||Infinity)-.05){this.audio.currentTime=Number(s.start||0);this.audio.play().catch(()=>{})}}}
 }
@@ -20296,7 +20387,7 @@ function renderEnglishPracticeHome(){
   </div></div>
   <div><div class="ep-en-section-title"><div><b>更多</b><span>需要时再打开</span></div></div><div class="ep-en-minirow"><button id="epResume">继续上次学习</button><button id="epEk">EK 专项</button><button id="epCETWords">CET 单词</button><button id="epCETPapers">CET-4 真题</button><button id="epRecords">学习记录</button></div></div>
   <section class="ep-en-stats"><div class="ep-en-stat"><b>${P.streak||0}</b><span>连续天数</span></div><div class="ep-en-stat"><b>${st.week}</b><span>本周完成</span></div><div class="ep-en-stat"><b>${Math.round(P.totalListeningMinutes||0)}</b><span>听力分钟</span></div></section>
-  <div class="ep-en-license">ChangeLife 课程：whyfail/changelife-frontend-listening · MIT License。音频按需从其公开 GitHub 仓库加载。短句测试数据为 Ephemeris 原创 CC0 示例；未冒充 Tatoeba 真人音频。</div>
+  <div class="ep-en-license">ChangeLife 课程：whyfail/changelife-frontend-listening · MIT License。音频按需从公开 GitHub / CDN 双线路加载。短句测试数据为 Ephemeris 原创 CC0 示例；未冒充 Tatoeba 真人音频。</div>
  </div>`;
  $id('epStartToday').onclick=()=>startEpisode(eid);$id('epCourses').onclick=()=>courseList();$id('epSentence').onclick=()=>sentencePractice();$id('epVoice').onclick=()=>commonVoicePage();$id('epReview').onclick=()=>reviewPage();$id('epRecords').onclick=()=>recordsPage();$id('epEk').onclick=()=>courseList(true);$id('epResume').onclick=()=>startEpisode(P.lastEpisodeId||eid);$id('epCETWords').onclick=()=>{try{openScreen('words')}catch(_){toastSafe('CET 小屋入口暂时打不开')}};$id('epCETPapers').onclick=()=>{try{renderCetLibrary('CET4');$id('cetLibraryScreen')?.classList.add('show')}catch(_){toastSafe('真题入口暂时打不开')}};
 }
@@ -20308,7 +20399,7 @@ let SESSION=null,PLAYER=null,RAF=0;
 async function startEpisode(id){
  const meta=manifest.find(x=>x.id===id)||manifest[0];P.lastEpisodeId=meta.id;P.episodeState=P.episodeState||{};const prev=P.episodeState[meta.id]||{};P.episodeState[meta.id]={...prev,step:Math.max(0,Math.min(8,prev.step||0)),listenCount:prev.listenCount||0,shadowed:!!prev.shadowed,retold:!!prev.retold};saveProgress(P);
  openEpScreen(meta.title,'正在载入课程…','<div class="ep-en-list-empty">正在加载字幕与音频时间轴…</div>');
- try{const lesson=await ChangeLifeAdapter.get(meta.id);SESSION={lesson,state:P.episodeState[meta.id],caption:'hidden',followIndex:0,recordUrl:null};renderLesson()}catch(e){$id('epEnBody').innerHTML=`<div class="ep-en-list-empty">课程加载失败。<br>${escHtml(e.message||'请检查网络')}<br><button class="ep-en-secondary" id="epRetryLesson">重试</button></div>`;$id('epRetryLesson').onclick=()=>startEpisode(meta.id)}
+ try{const lesson=await ChangeLifeAdapter.get(meta.id);SESSION={lesson,state:P.episodeState[meta.id],caption:'hidden',followIndex:0,recordUrl:null};renderLesson()}catch(e){console.warn('English lesson source failed',e);$id('epEnBody').innerHTML=`<div class="ep-en-list-empty"><b>课程源暂时没连上</b><br><br>这通常是 GitHub / CDN 资源线路问题，不代表你的网络坏了。<br><small>${escHtml(e.message||'source unavailable')}</small><br><button class="ep-en-secondary" id="epRetryLesson">换线路重试</button></div>`;$id('epRetryLesson').onclick=()=>{changeDataPromise=null;startEpisode(meta.id)}}
 }
 function fmt(t){t=Math.max(0,Math.floor(+t||0));return `${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`}
 function playerHTML(){return `<div class="ep-en-player"><audio id="epAudio" playsinline preload="metadata"></audio><div class="ep-en-player-main"><button id="epBack5">−5</button><button class="play" id="epPlay">▶</button><button id="epForward5">+5</button></div><input class="ep-en-range" id="epSeek" type="range" min="0" max="1000" value="0"><div class="ep-en-time"><span id="epNow">0:00</span><span id="epDur">${fmt(SESSION.lesson.duration)}</span></div><div class="ep-en-speed">${[.75,1,1.25,1.5].map(v=>`<button data-rate="${v}" class="${v===1?'on':''}">${v}×</button>`).join('')}<button class="ep-en-loop-btn" id="epLoopSentence">单句循环</button><button class="ep-en-loop-btn" id="epLoopAll">全文循环</button></div></div>`}
@@ -20334,7 +20425,7 @@ function renderLesson(){
 }
 function episodeVocabCount(id){return P.savedVocabulary.filter(x=>x.episodeId===id).length}
 function saveSession(){P.episodeState[SESSION.lesson.id]=SESSION.state;saveProgress(P)}
-function bindPlayer(){const a=$id('epAudio');if(!a)return;PLAYER=new EnglishAudioPlayer(a);PLAYER.set(SESSION.lesson.audio,SESSION.lesson.segments);PLAYER.render=()=>{$id('epPlay')&&($id('epPlay').textContent=a.paused?'▶':'Ⅱ');if($id('epSeek'))$id('epSeek').value=Number.isFinite(a.duration)&&a.duration?String(Math.round((a.currentTime/a.duration)*1000)):'0';$id('epNow')&&($id('epNow').textContent=fmt(a.currentTime));$id('epDur')&&($id('epDur').textContent=fmt(a.duration||SESSION.lesson.duration))};PLAYER.onSegment=i=>{document.querySelectorAll('.ep-en-line').forEach((el,j)=>el.classList.toggle('active',j===i));const active=document.querySelector(`.ep-en-line[data-seg="${i}"]`);active?.scrollIntoView({block:'nearest',behavior:'smooth'})};$id('epPlay').onclick=()=>{if(a.paused){SESSION.state.listenCount=(SESSION.state.listenCount||0)+1;saveSession()}PLAYER.playPause()};$id('epBack5').onclick=()=>PLAYER.seek(-5);$id('epForward5').onclick=()=>PLAYER.seek(5);$id('epSeek').oninput=e=>{if(Number.isFinite(a.duration))a.currentTime=(+e.target.value/1000)*a.duration};document.querySelectorAll('[data-rate]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-rate]').forEach(x=>x.classList.remove('on'));b.classList.add('on');PLAYER.rate(b.dataset.rate)});$id('epLoopSentence').onclick=()=>{PLAYER.loopSentence=!PLAYER.loopSentence;$id('epLoopSentence').classList.toggle('on',PLAYER.loopSentence)};$id('epLoopAll').onclick=()=>{PLAYER.loopAll=!PLAYER.loopAll;$id('epLoopAll').classList.toggle('on',PLAYER.loopAll)}}
+function bindPlayer(){const a=$id('epAudio');if(!a)return;PLAYER=new EnglishAudioPlayer(a);PLAYER.set(SESSION.lesson.audio,SESSION.lesson.segments,SESSION.lesson.audioSources||[SESSION.lesson.audio]);PLAYER.render=()=>{$id('epPlay')&&($id('epPlay').textContent=a.paused?'▶':'Ⅱ');if($id('epSeek'))$id('epSeek').value=Number.isFinite(a.duration)&&a.duration?String(Math.round((a.currentTime/a.duration)*1000)):'0';$id('epNow')&&($id('epNow').textContent=fmt(a.currentTime));$id('epDur')&&($id('epDur').textContent=fmt(a.duration||SESSION.lesson.duration))};PLAYER.onSegment=i=>{document.querySelectorAll('.ep-en-line').forEach((el,j)=>el.classList.toggle('active',j===i));const active=document.querySelector(`.ep-en-line[data-seg="${i}"]`);active?.scrollIntoView({block:'nearest',behavior:'smooth'})};$id('epPlay').onclick=()=>{if(a.paused){SESSION.state.listenCount=(SESSION.state.listenCount||0)+1;saveSession()}PLAYER.playPause()};$id('epBack5').onclick=()=>PLAYER.seek(-5);$id('epForward5').onclick=()=>PLAYER.seek(5);$id('epSeek').oninput=e=>{if(Number.isFinite(a.duration))a.currentTime=(+e.target.value/1000)*a.duration};document.querySelectorAll('[data-rate]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-rate]').forEach(x=>x.classList.remove('on'));b.classList.add('on');PLAYER.rate(b.dataset.rate)});$id('epLoopSentence').onclick=()=>{PLAYER.loopSentence=!PLAYER.loopSentence;$id('epLoopSentence').classList.toggle('on',PLAYER.loopSentence)};$id('epLoopAll').onclick=()=>{PLAYER.loopAll=!PLAYER.loopAll;$id('epLoopAll').classList.toggle('on',PLAYER.loopAll)}}
 function bindTranscript(){document.querySelectorAll('.ep-en-line').forEach(el=>el.onclick=e=>{const word=e.target.closest('[data-word]');if(word){openVocabSheet(word.dataset.word);e.stopPropagation();return}const i=+el.dataset.seg,seg=SESSION.lesson.segments[i];const a=$id('epAudio');if(a&&seg){a.currentTime=+seg.start||0;a.play().catch(()=>{})}})}
 let REC=null,RECCH=[];
 async function startRecord(){if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){toastSafe('当前浏览器不支持页面内录音');return}try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});RECCH=[];REC=new MediaRecorder(stream);REC.ondataavailable=e=>e.data.size&&RECCH.push(e.data);REC.onstop=()=>{const blob=new Blob(RECCH,{type:REC.mimeType||'audio/webm'});if(SESSION.recordUrl)URL.revokeObjectURL(SESSION.recordUrl);SESSION.recordUrl=URL.createObjectURL(blob);const p=$id('epRecordPreview');if(p){p.src=SESSION.recordUrl;p.style.display='block'}stream.getTracks().forEach(t=>t.stop())};REC.start();$id('epRecordBtn').disabled=true;$id('epStopRecord').disabled=false;toastSafe('开始录音了')}catch(_){toastSafe('没有拿到麦克风权限')}}
@@ -20369,7 +20460,7 @@ if(typeof oldOpen==='function'){
  window.openScreen=function(id){const r=oldOpen.apply(this,arguments);if(id==='practice')setTimeout(renderEnglishPracticeHome,0);return r}
 }
 // If old bindings call the symbol directly, overwrite global property as well.
-window.__ephemerisEnglishUpgrade={version:EN_VERSION,appVersion:'0.14.1',storage:STORE_KEY,mode:'single-file-mobile'};
+window.__ephemerisEnglishUpgrade={version:EN_VERSION,appVersion:'0.14.2',storage:STORE_KEY,mode:'single-file-mobile'};
 
 // API model UX sanity patch: make status/button behavior explicit in this build.
 setTimeout(()=>{
