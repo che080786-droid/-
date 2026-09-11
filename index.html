@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://music.yuncan.xyz" crossorigin>
 <link rel="preconnect" href="https://api.injahow.cn" crossorigin>
-<title>月序 · v0.13.21</title>
+<title>月序 · v0.14.1 · English Mobile</title>
 <style>
 :root{
   --ink:#2c282a;--muted:#8f858a;--glass:rgba(255,255,255,.62);--glass2:rgba(255,255,255,.82);
@@ -4360,6 +4360,31 @@ button.chat-system-recall.char{text-decoration:underline;text-decoration-color:#
 .focus-stage.tomato-break .focus-ring{background:conic-gradient(#9fb8aa var(--p,0%),#eee var(--p,0%))}
 .focus-stage.tomato-break .focus-current-label{color:#6e8578}
 
+
+.api-model-picker{position:fixed;inset:0;z-index:9999;display:none}
+.api-model-picker.show{display:block}
+.api-model-picker-backdrop{position:absolute;inset:0;background:rgba(23,18,21,.38);backdrop-filter:blur(5px)}
+.api-model-picker-sheet{
+  position:absolute;left:0;right:0;bottom:0;max-height:min(72vh,620px);
+  background:#fffafc;border-radius:24px 24px 0 0;padding:10px 14px calc(14px + env(safe-area-inset-bottom));
+  box-shadow:0 -20px 50px rgba(44,33,39,.18);overflow:hidden
+}
+.api-model-picker-handle{width:38px;height:4px;border-radius:999px;background:#ded5d9;margin:0 auto 10px}
+.api-model-picker-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 2px 10px}
+.api-model-picker-head b{display:block;font-size:16px}.api-model-picker-head small{display:block;margin-top:3px;color:#9b9296;font-size:9px}
+.api-model-picker-close{width:34px;height:34px;border:0;border-radius:50%;background:#f5edf1;color:#766a70;font-size:22px;line-height:1}
+.api-model-picker-list{max-height:48vh;overflow:auto;display:grid;gap:7px;padding:2px 0 8px}
+.api-model-option{
+  width:100%;border:1px solid #eee2e7;background:white;border-radius:14px;padding:12px 13px;
+  text-align:left;color:#332d30;font-size:12px;line-height:1.35
+}
+.api-model-option.selected{border-color:#d88baa;background:#fff1f6;color:#a95074;font-weight:800}
+.api-model-manual{width:100%;margin-top:4px}
+
+.listen-voice-switch{
+  margin-top:7px;border:0;border-radius:999px;background:#eee9ec;color:#796d73;
+  padding:6px 10px;font-size:8px
+}
 </style>
 
 <style id="cet-pdf-fullscreen-fix">
@@ -5604,7 +5629,7 @@ button.chat-system-recall.char{text-decoration:underline;text-decoration-color:#
     <button class="head-action" id="cetLibraryChar">晏</button>
   </header>
   <div class="screen-body">
-    <div class="cet-traffic-tip">流量保护：这里只列目录。只有点「试卷 / 答案 / 听力」才会联网；真题文件来自公开 GitHub 学习资料镜像，月序不再依赖已经失效的阿里云 OSS。</div>
+    <div class="cet-traffic-tip">真实题源会从公开 GitHub 仓库同步当前目录；只有打开具体 PDF / 音频时才加载文件。原创训练不会混进这里冒充真题。</div>
     <div class="cet-paper-list" id="cetPaperList"></div>
   </div>
 </section>
@@ -5885,9 +5910,12 @@ button.chat-system-recall.char{text-decoration:underline;text-decoration-color:#
             <option value="0.92">稍快</option>
           </select>
         </div>
+        <select class="input" id="vocabVoiceName" style="margin-top:8px">
+          <option value="">自动选择自然声线</option>
+        </select>
         <div class="vocab-voice-actions">
           <button class="btn soft" id="vocabVoicePreview">试听</button>
-          <button class="btn soft" id="vocabVoiceReload">重新选声线</button>
+          <button class="btn soft" id="vocabVoiceReload">换下一声线</button>
         </div>
         <div class="vocab-load-note" id="vocabVoiceStatus">正在读取 iPhone 英文声线…</div>
 
@@ -6403,8 +6431,8 @@ button.chat-system-recall.char{text-decoration:underline;text-decoration-color:#
   <article class="panel" id="apiSettingsPanel">
   <h3>聊天 API</h3>
   <div class="stack">
-    <input class="input" id="apiEndpoint" placeholder="API Endpoint，例如 https://.../v1/chat/completions">
-    <input class="input" id="apiModel" list="apiModelList" placeholder="聊天模型名 · URL + Key 填好后会自动拉取">
+    <input class="input" id="apiEndpoint" placeholder="API Base URL，例如 https://.../v1（会自动补 /chat/completions）">
+    <input class="input" id="apiModel" placeholder="聊天模型名 · 拉取后点这里选择" autocomplete="off">
     <datalist id="apiModelList"></datalist>
     <div class="row" style="align-items:center">
       <button class="btn soft" id="fetchApiModels" type="button">重新拉取模型</button>
@@ -6478,6 +6506,22 @@ button.chat-system-recall.char{text-decoration:underline;text-decoration-color:#
     </div>
   </div>
 </article>
+
+  <div id="apiModelPicker" class="api-model-picker" aria-hidden="true">
+    <div class="api-model-picker-backdrop" data-close-api-model-picker></div>
+    <div class="api-model-picker-sheet" role="dialog" aria-modal="true" aria-label="选择模型">
+      <div class="api-model-picker-handle"></div>
+      <div class="api-model-picker-head">
+        <div>
+          <b>选择聊天模型</b>
+          <small id="apiModelPickerCount">已拉取 0 个</small>
+        </div>
+        <button type="button" class="api-model-picker-close" data-close-api-model-picker>×</button>
+      </div>
+      <div id="apiModelPickerList" class="api-model-picker-list"></div>
+      <button type="button" class="btn soft api-model-manual" id="apiModelManualInput">手动输入模型名</button>
+    </div>
+  </div>
 
   <div class="settings-section-title">晏景监督</div>
   <article class="panel">
@@ -8656,36 +8700,82 @@ $('addTask').onclick=()=>{const name=$('newTask').value.trim(),type=$('taskType'
 
 
 
-/* ===== Natural English voice · migrated from old CET project ===== */
+/* ===== Natural English voice · user-selectable on iPhone ===== */
 let ephemSpeechAccent=localStorage.getItem('cetSpeechAccent')||'en-US';
 let ephemSpeechRate=Number(localStorage.getItem('cetSpeechRate')||'.82');
+let ephemSpeechVoiceKey=localStorage.getItem('cetSpeechVoiceKey')||'';
 let ephemPreferredVoice=null;
 
+function ephemVoiceKey(v){return v?`${v.name}|||${v.lang}`:''}
+function englishSystemVoices(){
+  if(!('speechSynthesis' in window))return [];
+  return (window.speechSynthesis.getVoices()||[]).filter(v=>String(v.lang||'').toLowerCase().startsWith('en'))
+}
 function rankEphemVoice(voice,accent){
   const name=String(voice?.name||'').toLowerCase(),lang=String(voice?.lang||'');
   let score=0;
   if(lang===accent)score+=100;
   else if(lang.startsWith(accent.slice(0,2)))score+=35;
-  if(/samantha|ava|allison|susan|serena|daniel|karen|moira|rishi|siri|premium|enhanced|natural/.test(name))score+=30;
-  if(/compact|novelty|whisper|zarvox|bells|bad news|good news/.test(name))score-=60;
+
+  // iPhone 上优先更自然、较少“机械女声感”的常见英文声线。
+  if(/daniel|aaron|arthur|oliver|rishi|lee|tom|alex/.test(name))score+=72;
+  if(/premium|enhanced|natural|siri/.test(name))score+=48;
+  if(/samantha|ava|allison|susan|serena|karen|moira/.test(name))score+=18;
+  if(/compact|novelty|whisper|zarvox|bells|bad news|good news/.test(name))score-=90;
   if(voice?.localService)score+=5;
   return score
 }
+function populateEphemVoiceSelect(){
+  const sel=$('vocabVoiceName');if(!sel)return;
+  const voices=englishSystemVoices()
+    .sort((a,b)=>rankEphemVoice(b,ephemSpeechAccent)-rankEphemVoice(a,ephemSpeechAccent));
+  const current=ephemSpeechVoiceKey;
+  sel.innerHTML=`<option value="">自动选择自然声线</option>`+
+    voices.map(v=>`<option value="${esc(ephemVoiceKey(v))}">${esc(v.name)} · ${esc(v.lang)}</option>`).join('');
+  if(current&&voices.some(v=>ephemVoiceKey(v)===current))sel.value=current;
+  else sel.value=''
+}
 function refreshEphemVoice(){
   if(!('speechSynthesis' in window))return null;
-  const voices=window.speechSynthesis.getVoices()||[];
-  if(!voices.length){ephemPreferredVoice=null;return null}
-  ephemPreferredVoice=[...voices].sort((a,b)=>rankEphemVoice(b,ephemSpeechAccent)-rankEphemVoice(a,ephemSpeechAccent))[0]||null;
+  const voices=englishSystemVoices();
+  if(!voices.length){ephemPreferredVoice=null;populateEphemVoiceSelect();return null}
+
+  const exact=ephemSpeechVoiceKey
+    ?voices.find(v=>ephemVoiceKey(v)===ephemSpeechVoiceKey)
+    :null;
+  ephemPreferredVoice=exact||[...voices].sort(
+    (a,b)=>rankEphemVoice(b,ephemSpeechAccent)-rankEphemVoice(a,ephemSpeechAccent)
+  )[0]||null;
+
+  populateEphemVoiceSelect();
   return ephemPreferredVoice
 }
 function ephemVoiceLabel(){
   const v=ephemPreferredVoice||refreshEphemVoice();
-  return v?`${v.name} · ${v.lang}`:'系统自然英文声线'
+  return v?`${v.name} · ${v.lang}`:'系统英文声线'
 }
 function updateEphemVoiceUI(){
   if($('vocabVoiceAccent'))$('vocabVoiceAccent').value=ephemSpeechAccent;
   if($('vocabVoiceRate'))$('vocabVoiceRate').value=String(ephemSpeechRate);
-  if($('vocabVoiceStatus'))$('vocabVoiceStatus').textContent=`当前声线：${ephemVoiceLabel()}`
+  populateEphemVoiceSelect();
+  if($('vocabVoiceStatus'))$('vocabVoiceStatus').textContent=`当前声线：${ephemVoiceLabel()} · Practice 原创听力也用这条声线`
+}
+function chooseEphemVoiceByKey(key,preview=false){
+  ephemSpeechVoiceKey=String(key||'');
+  localStorage.setItem('cetSpeechVoiceKey',ephemSpeechVoiceKey);
+  ephemPreferredVoice=null;refreshEphemVoice();updateEphemVoiceUI();
+  if(preview)speakNaturalEnglish('Good morning. Your listening practice is ready.',ephemSpeechRate)
+}
+function cycleEphemVoice(preview=true){
+  const voices=englishSystemVoices()
+    .filter(v=>String(v.lang||'').startsWith(ephemSpeechAccent.slice(0,2)))
+    .sort((a,b)=>rankEphemVoice(b,ephemSpeechAccent)-rankEphemVoice(a,ephemSpeechAccent));
+  if(!voices.length){toast('这台设备暂时没有可用英文声线');return}
+  const current=ephemVoiceKey(ephemPreferredVoice||refreshEphemVoice());
+  let idx=voices.findIndex(v=>ephemVoiceKey(v)===current);
+  idx=(idx+1)%voices.length;
+  chooseEphemVoiceByKey(ephemVoiceKey(voices[idx]),preview);
+  toast(`已换成 ${voices[idx].name}`)
 }
 let ephemSpeechText='';
 let ephemSpeechPlaying=false;
@@ -8699,7 +8789,9 @@ function syncEphemSpeechUI(){
   if(main){main.textContent=active&&!paused?'Ⅱ':'▶';main.setAttribute('aria-label',active&&!paused?'暂停':'播放或继续')}
   if(top&&engSkill==='listening'){top.textContent=active&&!paused?'Ⅱ':'🔊';top.setAttribute('aria-label',active&&!paused?'暂停听力':'播放或继续听力')}
   if(status){
-    status.textContent=active?(paused?'已暂停 · 点 ▶ 继续':'正在播放 · 点 Ⅱ 暂停'):'点 ▶ 开始 · 播放中可随时暂停'
+    status.textContent=active
+      ?(paused?'已暂停 · 点 ▶ 继续':`正在播放 · ${ephemVoiceLabel()}`)
+      :`系统朗读训练 · ${ephemVoiceLabel()}`
   }
 }
 function stopNaturalEnglish(){
@@ -8712,7 +8804,6 @@ function speakNaturalEnglish(textToSpeak,rate=ephemSpeechRate,retry=true){
   const clean=String(textToSpeak||'').trim();if(!clean)return false;
   const synth=window.speechSynthesis;
 
-  // 同一段正在播：再次点击就是暂停；暂停后再次点击就是继续。
   if(ephemSpeechText===clean&&(ephemSpeechPlaying||ephemSpeechPaused)){
     try{
       if(ephemSpeechPaused||synth.paused){synth.resume();ephemSpeechPaused=false;ephemSpeechPlaying=true}
@@ -8732,14 +8823,23 @@ function speakNaturalEnglish(textToSpeak,rate=ephemSpeechRate,retry=true){
   u.onend=()=>{if(ephemSpeechUtterance===u){ephemSpeechText='';ephemSpeechPlaying=false;ephemSpeechPaused=false;ephemSpeechUtterance=null;syncEphemSpeechUI()}};
   u.onerror=()=>{
     if(ephemSpeechUtterance===u){ephemSpeechText='';ephemSpeechPlaying=false;ephemSpeechPaused=false;ephemSpeechUtterance=null;syncEphemSpeechUI()}
-    if(retry){ephemPreferredVoice=null;setTimeout(()=>speakNaturalEnglish(clean,rate,false),160)}
-    else toast('这个声线没播放出来，去 CET 小屋设置里点“重新选声线”')
+    if(retry){
+      ephemSpeechVoiceKey='';
+      localStorage.removeItem('cetSpeechVoiceKey');
+      ephemPreferredVoice=null;
+      setTimeout(()=>speakNaturalEnglish(clean,rate,false),160)
+    }else toast('这个声线没播放出来，可以在 CET 小屋设置里换一条声线')
   };
   synth.speak(u);syncEphemSpeechUI();return true
 }
 function saveEphemVoiceSettings(){
+  const oldAccent=ephemSpeechAccent;
   ephemSpeechAccent=$('vocabVoiceAccent')?.value||ephemSpeechAccent;
   ephemSpeechRate=Number($('vocabVoiceRate')?.value||ephemSpeechRate||.82);
+  if(oldAccent!==ephemSpeechAccent){
+    ephemSpeechVoiceKey='';
+    localStorage.removeItem('cetSpeechVoiceKey')
+  }
   localStorage.setItem('cetSpeechAccent',ephemSpeechAccent);
   localStorage.setItem('cetSpeechRate',String(ephemSpeechRate));
   ephemPreferredVoice=null;refreshEphemVoice();updateEphemVoiceUI()
@@ -8891,7 +8991,7 @@ async function apiFreshBatch(skill,count=4){
     writing:'title, level, prompt(Chinese), hints(array of 3-4 English phrases), help(Chinese)'
   }[skill];
   try{
-    const r=await fetch(state.api.endpoint,{
+    const r=await fetch(ephemerisApiChatEndpoint(state.api.endpoint),{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+sessionStorage.getItem('yue_api_key')},
       body:JSON.stringify({
@@ -9072,9 +9172,10 @@ function renderEnglishSkill(){
   $('engVoiceInput').textContent='🎙 录语音';
 
   if(engSkill==='listening'){
-    $('engSkillContent').innerHTML=`<div class="listen-stage"><div class="listen-control-row"><button class="listen-main" id="engPlayAudio" type="button">▶</button><button class="listen-stop" id="engStopAudio" type="button">■</button></div><b>先别看字幕</b><span id="engPlayStatus">点 ▶ 开始 · 播放中可随时暂停</span></div>`;
+    $('engSkillContent').innerHTML=`<div class="listen-stage"><div class="listen-control-row"><button class="listen-main" id="engPlayAudio" type="button">▶</button><button class="listen-stop" id="engStopAudio" type="button">■</button></div><b>先别看字幕</b><span id="engPlayStatus">系统朗读训练 · ${esc(ephemVoiceLabel())}</span><button class="listen-voice-switch" id="engVoiceQuickSwitch" type="button">换声线</button></div>`;
     $('engPlayAudio').onclick=()=>speakEnglishLab(item.script);
     $('engStopAudio').onclick=()=>stopNaturalEnglish();
+    $('engVoiceQuickSwitch').onclick=()=>cycleEphemVoice(true);
     syncEphemSpeechUI()
   }else if(engSkill==='reading'){
     $('engSkillContent').innerHTML=`<div class="reading-text">${esc(item.text||'')}</div>`
@@ -9768,25 +9869,224 @@ const CET_LIBRARY={
 let currentCetType='CET4',currentPaperContext=null;
 function cetAsset(path){return path||''}
 
-function renderCetLibrary(type='CET4'){
+const CET_REMOTE_SOURCE={
+  CET4:'【公共课】英语/四级真题',
+  CET6:'【公共课】英语/六级真题'
+};
+const CET_REMOTE_CACHE=new Map();
+function cetRemoteApi(path){
+  return 'https://api.github.com/repos/Tuning-Luna/HFUT_XC_Study_Things/contents/'+
+    String(path||'').split('/').map(encodeURIComponent).join('/')+'?ref=main'
+}
+function cetRemoteSourcePage(type){
+  const path=CET_REMOTE_SOURCE[type]||CET_REMOTE_SOURCE.CET4;
+  return 'https://github.com/Tuning-Luna/HFUT_XC_Study_Things/tree/main/'+
+    path.split('/').map(encodeURIComponent).join('/')
+}
+async function fetchCetRemoteDir(urlOrPath){
+  const url=/^https?:/i.test(String(urlOrPath||''))?urlOrPath:cetRemoteApi(urlOrPath);
+  if(CET_REMOTE_CACHE.has(url))return CET_REMOTE_CACHE.get(url);
+  const r=await fetch(url,{headers:{Accept:'application/vnd.github+json'},cache:'no-store'});
+  if(!r.ok)throw new Error(`GitHub ${r.status}`);
+  const data=await r.json();
+  if(!Array.isArray(data))throw new Error('题源目录格式异常');
+  CET_REMOTE_CACHE.set(url,data);
+  return data
+}
+function cetRemoteUseful(item){
+  if(item?.type==='dir')return true;
+  return /\.(pdf|mp3|m4a|wav|aac|doc|docx|zip|rar)$/i.test(String(item?.name||''))
+}
+function cetRemoteKind(item){
+  const n=String(item?.name||'').toLowerCase();
+  if(/\.(mp3|m4a|wav|aac)$/i.test(n))return 'audio';
+  if(/\.(pdf)$/i.test(n)){
+    return /(答案|解析|answer|answers|_ans\b|听力原文|原文)/i.test(item.name)?'analysis':'paper'
+  }
+  return 'download'
+}
+function cetRemoteLabelScore(name){
+  const s=String(name||'');
+  let year=0,month=0;
+  const y4=s.match(/(20\d{2})/);if(y4)year=+y4[1];
+  const y2=s.match(/(?:^|[^\d])(\d{2})[.\-_年]/);if(!year&&y2)year=2000+(+y2[1]);
+  const m=s.match(/(?:年|[.\-_])\s*(0?[369]|12)\s*(?:月|[.\-_]|$)/);if(m)month=+m[1];
+  return year*100+month
+}
+function cetRemoteSort(a,b){
+  if(a.type!==b.type)return a.type==='dir'?-1:1;
+  return cetRemoteLabelScore(b.name)-cetRemoteLabelScore(a.name)||String(b.name).localeCompare(String(a.name),'zh-CN')
+}
+function cetRemoteDirectGroups(files=[]){
+  const groups=new Map(),rest=[];
+  for(const f of files){
+    const m=String(f.name||'').match(/cet([46])_(20\d{2})_(\d{2})_(\d+)(?:(_ans))?\.(pdf|mp3)$/i);
+    if(!m){rest.push(f);continue}
+    const key=`${m[2]}_${m[3]}_${m[4]}`;
+    if(!groups.has(key))groups.set(key,{year:+m[2],month:+m[3],set:+m[4],paper:null,analysis:null,audio:null});
+    const g=groups.get(key),kind=cetRemoteKind(f);g[kind]=f
+  }
+  return {
+    groups:[...groups.values()].sort((a,b)=>(b.year*100+b.month)-(a.year*100+a.month)||a.set-b.set),
+    rest
+  }
+}
+function cetRemoteOpenButton(item,label){
+  const kind=cetRemoteKind(item);
+  const text=kind==='audio'?'播放听力':kind==='analysis'?'看答案':kind==='paper'?'打开试卷':'打开资料';
+  return `<button data-cet-remote-file="${esc(item.url||'')}" data-cet-remote-name="${esc(item.name||label||'资料')}" data-cet-remote-kind="${kind}">${text}</button>`
+}
+function bindCetRemoteRows(){
+  document.querySelectorAll('[data-cet-remote-dir]').forEach(btn=>btn.onclick=()=>openCetRemoteDirectory(
+    btn.dataset.cetRemoteDir,btn.dataset.cetRemoteTitle||'真题资料包'
+  ));
+  document.querySelectorAll('[data-cet-remote-file]').forEach(btn=>btn.onclick=()=>openCetRemoteApiFile(
+    btn.dataset.cetRemoteFile,btn.dataset.cetRemoteKind,btn.dataset.cetRemoteName
+  ));
+  document.querySelectorAll('[data-cet-remote-root]').forEach(btn=>btn.onclick=()=>renderCetLibrary(currentCetType));
+  document.querySelectorAll('[data-cet-source-page]').forEach(btn=>btn.onclick=()=>hardOpenUrl(cetRemoteSourcePage(currentCetType)))
+}
+function renderCetRemoteRoot(items,type){
+  const usable=items.filter(cetRemoteUseful).sort(cetRemoteSort);
+  const dirs=usable.filter(x=>x.type==='dir');
+  const files=usable.filter(x=>x.type!=='dir');
+  const direct=cetRemoteDirectGroups(files);
+
+  const folderHtml=dirs.map(item=>`
+    <article class="cet-paper-card">
+      <div class="cet-paper-card-head"><b>${esc(item.name)}</b><span>真实资料包</span></div>
+      <div class="cet-set-row">
+        <span>GitHub 当前目录</span>
+        <button data-cet-remote-dir="${esc(item.url)}" data-cet-remote-title="${esc(item.name)}">打开资料</button>
+      </div>
+    </article>`).join('');
+
+  const groupHtml=direct.groups.length?`
+    <article class="cet-paper-card">
+      <div class="cet-paper-card-head"><b>可直接播放 / 阅读的真题</b><span>${direct.groups.length} 套</span></div>
+      ${direct.groups.map(g=>`
+        <div class="cet-set-row">
+          <span>${g.year}年${String(g.month).padStart(2,'0')}月 · 第${g.set}套</span>
+          ${g.paper?cetRemoteOpenButton(g.paper,'试卷'):'<button disabled>无试卷</button>'}
+          ${g.analysis?cetRemoteOpenButton(g.analysis,'答案'):'<button disabled>无答案</button>'}
+          ${g.audio?cetRemoteOpenButton(g.audio,'听力'):'<button disabled>无音频</button>'}
+        </div>`).join('')}
+    </article>`:'';
+
+  const loose=direct.rest.slice(0,80);
+  const looseHtml=loose.length?`
+    <article class="cet-paper-card">
+      <div class="cet-paper-card-head"><b>其他真实资料</b><span>${direct.rest.length} 项</span></div>
+      ${loose.map(item=>`
+        <div class="cet-set-row">
+          <span title="${esc(item.name)}">${esc(item.name)}</span>
+          ${cetRemoteOpenButton(item,item.name)}
+        </div>`).join('')}
+    </article>`:'';
+
+  $('cetPaperList').innerHTML=`
+    <div class="cet-traffic-tip" style="margin-bottom:10px">已同步题源当前目录。粉色原创训练和这里完全分开；这里显示的才是真实试卷 / 答案 / 听力文件。</div>
+    ${folderHtml}${groupHtml}${looseHtml}
+    <button class="btn soft" style="width:100%;margin-top:8px" data-cet-source-page>打开 GitHub 原始题源</button>`;
+  bindCetRemoteRows()
+}
+async function renderCetLibrary(type='CET4'){
   currentCetType=type;
   $('cetLibraryTitle').textContent=type==='CET6'?'CET-6 真题库':'CET-4 真题库';
-  const periods=CET_LIBRARY[type]||[];
-  $('cetPaperList').innerHTML=periods.map((p,pi)=>`
-    <article class="cet-paper-card">
-      <div class="cet-paper-card-head"><b>${p.label}</b><span>${p.sets.length} 套</span></div>
-      ${p.sets.map((s,si)=>`
-        <div class="cet-set-row">
-          <span>${s[0]}</span>
-          <button data-paper="${pi}:${si}:paper">试卷</button>
-          <button data-paper="${pi}:${si}:analysis">答案</button>
-          <button class="audio" data-paper="${pi}:${si}:audio" ${s[3]?'':'disabled'}>${s[3]?'听力':'无音频'}</button>
-        </div>`).join('')}
-    </article>`).join('');
-  document.querySelectorAll('[data-paper]').forEach(b=>b.onclick=()=>{
-    const [pi,si,kind]=b.dataset.paper.split(':');openCetAsset(+pi,+si,kind)
-  })
+  $('cetPaperList').innerHTML='<div class="local-file-empty">正在同步真实真题目录…</div>';
+  try{
+    const items=await fetchCetRemoteDir(CET_REMOTE_SOURCE[type]||CET_REMOTE_SOURCE.CET4);
+    renderCetRemoteRoot(items,type)
+  }catch(e){
+    console.warn('CET live library failed',e);
+    $('cetPaperList').innerHTML=`
+      <div class="local-file-empty">真实题源目录暂时拉取失败。不会拿原创题冒充真题。</div>
+      <button class="btn soft" style="width:100%;margin-top:10px" data-cet-remote-root>再试一次</button>
+      <button class="btn soft" style="width:100%;margin-top:8px" data-cet-source-page>打开 GitHub 原始题源</button>`;
+    bindCetRemoteRows()
+  }
 }
+async function openCetRemoteDirectory(apiUrl,title){
+  $('cetPaperList').innerHTML='<div class="local-file-empty">正在打开资料包…</div>';
+  try{
+    const items=(await fetchCetRemoteDir(apiUrl)).filter(cetRemoteUseful).sort(cetRemoteSort);
+    $('cetPaperList').innerHTML=`
+      <button class="btn soft" style="width:100%;margin-bottom:10px" data-cet-remote-root>‹ 返回真题总目录</button>
+      <article class="cet-paper-card">
+        <div class="cet-paper-card-head"><b>${esc(title)}</b><span>${items.length} 项</span></div>
+        ${items.map(item=>item.type==='dir'
+          ?`<div class="cet-set-row"><span>${esc(item.name)}</span><button data-cet-remote-dir="${esc(item.url)}" data-cet-remote-title="${esc(item.name)}">打开文件夹</button></div>`
+          :`<div class="cet-set-row"><span title="${esc(item.name)}">${esc(item.name)}</span>${cetRemoteOpenButton(item,item.name)}</div>`
+        ).join('')||'<div class="local-file-empty">这个资料包里暂时没有可识别的 PDF / 音频。</div>'}
+      </article>`;
+    bindCetRemoteRows()
+  }catch(e){
+    $('cetPaperList').innerHTML=`
+      <button class="btn soft" style="width:100%;margin-bottom:10px" data-cet-remote-root>‹ 返回真题总目录</button>
+      <div class="local-file-empty">这个资料包暂时加载失败。</div>`;
+    bindCetRemoteRows()
+  }
+}
+async function openCetRemoteApiFile(apiUrl,kind,title){
+  try{
+    const r=await fetch(apiUrl,{headers:{Accept:'application/vnd.github+json'},cache:'no-store'});
+    if(!r.ok)throw new Error(`GitHub ${r.status}`);
+    const item=await r.json();
+    const url=item.download_url||item.html_url;
+    if(!url)throw new Error('没有文件地址');
+    if(kind==='download'){hardOpenUrl(item.html_url||url);return}
+    openCetDirectAsset(kind,url,title)
+  }catch(e){
+    console.warn('open CET remote file failed',e);toast('这份真题文件暂时打不开')
+  }
+}
+function openCetDirectAsset(kind,url,title){
+  currentPaperContext={
+    type:currentCetType,period:title||'真实真题',set:'',kind,path:url,url,
+    source:'GitHub 当前真题目录'
+  };
+  if(kind==='paper')logPaperOpen(currentPaperContext);
+  $('paperViewerTitle').textContent=title||`${currentCetType} 真题`;
+  $('paperViewerSub').textContent=kind==='paper'?'真实试卷':kind==='analysis'?'答案 / 解析':'真实听力音频';
+  $('paperViewerScreen').classList.add('show');
+  $('paperViewerScreen').classList.toggle('audio-mode',kind==='audio');
+  $('paperViewerScreen').classList.toggle('pdf-mode',kind!=='audio');
+  $('paperViewerFrame').style.display='none';$('paperViewerFrame').src='about:blank';
+  $('cetPdfViewer')?.classList.remove('show');
+
+  const paperAudio=$('paperAudio');
+  try{paperAudio.pause();paperAudio.currentTime=0}catch(_){}
+  paperAudio.removeAttribute('src');paperAudio.load();
+  $('cetAudioPanel')?.classList.remove('show');
+  $('paperViewerPlaceholder').style.display='flex';
+
+  if(kind==='audio'){
+    $('paperViewerPlaceholder').innerHTML=`
+      <b>真实 CET 听力音频</b>
+      <span>这是题源里的 MP3 / 音频文件，不使用系统 TTS 女声。</span>
+      <div class="paper-open-actions">
+        <button class="inside" id="paperLoadInside">月序里播放</button>
+        <button class="browser" id="paperOpenBrowser">浏览器打开</button>
+      </div>`;
+  }else{
+    $('paperViewerPlaceholder').innerHTML=`
+      <b>${kind==='paper'?'真实真题试卷':'真实答案 / 解析'}</b>
+      <span>文件来自当前 GitHub 真题目录。点“月序内预览”后才下载。</span>
+      <div class="paper-open-actions">
+        <button class="inside" id="paperLoadInside">月序内预览</button>
+        <button class="browser" id="paperOpenBrowser">浏览器打开</button>
+      </div>
+      <button class="paper-direct-link" id="paperCopyUrl">复制文件地址</button>`;
+  }
+
+  $('paperLoadInside').onclick=()=>loadCetAssetInside(kind,url);
+  $('paperOpenBrowser').onclick=()=>hardOpenUrl(url);
+  if($('paperCopyUrl'))$('paperCopyUrl').onclick=async()=>{
+    try{await navigator.clipboard.writeText(url);toast('文件地址已复制')}
+    catch(_){prompt('复制这个地址',url)}
+  }
+}
+
 
 function hardOpenUrl(url){
   url=normalizeExternalUrl(url);
@@ -11415,6 +11715,15 @@ function saveCharBehaviorSettings(){
   b.videoMax=Math.max(0,Math.min(20,+$('charVideoMax').value||0));
   save();renderCharBehaviorSettings()
 }
+function ephemerisApiChatEndpoint(raw){
+  let u=String(raw||'').trim().replace(/\/+$/,'');
+  if(!u)return '';
+  if(/\/chat\/completions$/i.test(u))return u;
+  if(/\/models$/i.test(u))u=u.replace(/\/models$/i,'');
+  if(/\/responses$/i.test(u))u=u.replace(/\/responses$/i,'');
+  if(/\/v1$/i.test(u))return u+'/chat/completions';
+  return u+'/v1/chat/completions'
+}
 function apiFeatureEnabled(feature){
   return state.api?.features?.[feature]===true
 }
@@ -11435,7 +11744,7 @@ async function charApiText(prompt,feature='wechat',charId='yanjing'){
   if(!(state.api?.endpoint&&state.api?.model&&sessionStorage.getItem('yue_api_key')))return '';
   try{
     const world=worldContext(prompt,charId);
-    const r=await fetch(state.api.endpoint,{
+    const r=await fetch(ephemerisApiChatEndpoint(state.api.endpoint),{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+sessionStorage.getItem('yue_api_key')},
       body:JSON.stringify({
@@ -13402,7 +13711,7 @@ async function generateDiary(){
 学习记录：背词 ${l.vocabCount} 个；刷题 ${l.practiceAnswered} 道；专注 ${l.focusMinutes} 分钟；今日错词 ${l.wrongWords?.length||0} 个；待复习错题 ${state.learning.practiceReviewBank.length} 道。
 最近聊天：${c.chat.join(' / ')||'暂无'}。
 输出两段以内。`;
-      const r=await fetch(state.api.endpoint,{
+      const r=await fetch(ephemerisApiChatEndpoint(state.api.endpoint),{
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+sessionStorage.getItem('yue_api_key')},
         body:JSON.stringify({model:state.api.model,messages:[{role:'user',content:prompt}]})
@@ -14213,10 +14522,47 @@ function apiLikelyChatModels(names){
   const chat=names.filter(n=>!bad.test(n));
   return chat.length?chat:names
 }
+let API_MODEL_CHOICES=[];
 function renderApiModelOptions(names=[]){
+  API_MODEL_CHOICES=[...new Set((names||[]).filter(Boolean))];
   const dl=$('apiModelList');
-  if(!dl)return;
-  dl.innerHTML=names.map(n=>`<option value="${esc(n)}"></option>`).join('')
+  if(dl)dl.innerHTML=API_MODEL_CHOICES.map(n=>`<option value="${esc(n)}"></option>`).join('');
+  renderApiModelPickerList()
+}
+function renderApiModelPickerList(){
+  const list=$('apiModelPickerList'),count=$('apiModelPickerCount');
+  if(!list)return;
+  const current=$('apiModel')?.value.trim()||state.api?.model||'';
+  if(count)count.textContent=`已拉取 ${API_MODEL_CHOICES.length} 个`;
+  if(!API_MODEL_CHOICES.length){
+    list.innerHTML='<div style="padding:20px 10px;text-align:center;color:#9b9296;font-size:11px">还没有模型列表，先点“重新拉取模型”。</div>';
+    return
+  }
+  list.innerHTML=API_MODEL_CHOICES.map((name,i)=>`<button type="button" class="api-model-option ${name===current?'selected':''}" data-api-model-index="${i}">${esc(name)}</button>`).join('');
+  list.querySelectorAll('[data-api-model-index]').forEach(btn=>btn.onclick=()=>{
+    const model=API_MODEL_CHOICES[+btn.dataset.apiModelIndex];
+    if(!model)return;
+    $('apiModel').value=model;
+    state.api.model=model;
+    save();renderApiStatus();
+    closeApiModelPicker();
+    toast(`已选择 ${model}`)
+  })
+}
+function openApiModelPicker(){
+  renderApiModelPickerList();
+  const picker=$('apiModelPicker');
+  if(!picker)return;
+  picker.classList.add('show');
+  picker.setAttribute('aria-hidden','false');
+  document.body.style.overflow='hidden'
+}
+function closeApiModelPicker(){
+  const picker=$('apiModelPicker');
+  if(!picker)return;
+  picker.classList.remove('show');
+  picker.setAttribute('aria-hidden','true');
+  document.body.style.overflow=''
 }
 async function fetchApiModels({silent=false}={}){
   if(apiModelFetchBusy)return [];
@@ -14271,8 +14617,11 @@ async function fetchApiModels({silent=false}={}){
         if(input.value.trim())state.api.model=input.value.trim();
         save();renderApiStatus();
 
-        if(status)status.textContent=`已拉取 ${names.length} 个可用模型`;
-        if(!silent)toast(`找到 ${names.length} 个模型`);
+        if(status)status.textContent=`已拉取 ${names.length} 个模型 · 点模型栏选择`;
+        if(!silent){
+          toast(`找到 ${names.length} 个模型`);
+          setTimeout(openApiModelPicker,120)
+        }
         return names
       }catch(e){
         lastErr=e?.message||'网络请求失败'
@@ -14328,6 +14677,19 @@ $('saveApiSettings').onclick=async()=>{
   if(state.api.endpoint&&key)await fetchApiModels({silent:true})
 };
 $('fetchApiModels').onclick=()=>fetchApiModels();
+$('apiModel').addEventListener('click',async()=>{
+  if(API_MODEL_CHOICES.length)openApiModelPicker();
+  else{
+    const names=await fetchApiModels();
+    if(names.length&&!$('apiModelPicker').classList.contains('show'))openApiModelPicker()
+  }
+});
+document.querySelectorAll('[data-close-api-model-picker]').forEach(el=>el.onclick=closeApiModelPicker);
+$('apiModelManualInput').onclick=()=>{
+  closeApiModelPicker();
+  $('apiModel').focus();
+  $('apiModel').select?.()
+};
 $('apiEndpoint').addEventListener('input',scheduleAutoFetchApiModels);
 $('apiEndpoint').addEventListener('blur',scheduleAutoFetchApiModels);
 $('apiKey').addEventListener('input',scheduleAutoFetchApiModels);
@@ -16266,8 +16628,9 @@ $('vocabDailyInput').onchange=()=>{
 };
 $('vocabVoiceAccent').onchange=saveEphemVoiceSettings;
 $('vocabVoiceRate').onchange=saveEphemVoiceSettings;
+$('vocabVoiceName').onchange=e=>chooseEphemVoiceByKey(e.target.value,true);
 $('vocabVoicePreview').onclick=()=>speakNaturalEnglish('Vocabulary practice starts now.',ephemSpeechRate);
-$('vocabVoiceReload').onclick=()=>{ephemPreferredVoice=null;try{speechSynthesis.cancel();speechSynthesis.resume()}catch(_){};refreshEphemVoice();updateEphemVoiceUI();setTimeout(()=>$('vocabVoicePreview').click(),120)};
+$('vocabVoiceReload').onclick=()=>cycleEphemVoice(true);
 
 $('vocabBookSelect').onchange=async e=>{
   state.vocab.book=e.target.value;
@@ -18131,7 +18494,7 @@ html,body{width:100%!important;height:100%!important;overflow:hidden!important;m
       :'你是大学英语四/六级汉译英批改老师。参考译文只是对照，不要求逐字一致。用中文检查信息是否漏译/错译、语法和搭配是否自然；列出最关键的修改，再给一版自然的修订译文。不要因为表达与参考不同就判错。';
     const reference=q.reference||'';
     const prompt=`考试：${q.subject||'CET'}\n题型：${isWriting?'短文写作':'汉译英'}\n题目：\n${subjectivePrompt(q)}\n\n学生答案：\n${answer}\n\n${reference?`本地参考/检查点：\n${reference}\n\n`:''}请只返回批改结果。`;
-    const r=await fetch(state.api.endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+sessionStorage.getItem('yue_api_key')},body:JSON.stringify({model:state.api.model,messages:[{role:'system',content:system},{role:'user',content:prompt}]})});
+    const r=await fetch(ephemerisApiChatEndpoint(state.api.endpoint),{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+sessionStorage.getItem('yue_api_key')},body:JSON.stringify({model:state.api.model,messages:[{role:'system',content:system},{role:'user',content:prompt}]})});
     if(!r.ok)throw new Error('API 请求失败 · '+r.status);
     const data=await r.json(),txt=extractApiText(data);if(!txt)throw new Error('API 没有返回批改内容');return txt;
   }
@@ -19775,5 +20138,251 @@ window.__ephemPatch01318={
   focus:'pomodoro mode + background real-time reconciliation'
 };
 </script>
+
+
+<style id="ephem-english-mobile-css">
+/* Ephemeris English Mobile bundle · single-file deploy */
+.ep-en-home{padding:2px 0 34px;display:grid;gap:14px}
+.ep-en-card{background:rgba(255,255,255,.88);border:1px solid rgba(188,169,178,.18);border-radius:22px;padding:16px;box-shadow:0 8px 24px rgba(56,47,52,.05)}
+.ep-en-today{background:linear-gradient(145deg,#fff7fa 0%,#f6f8ff 100%);padding:19px}
+.ep-en-kicker{font-size:9px;letter-spacing:.18em;color:#a28693;text-transform:uppercase;font-weight:800}
+.ep-en-today h2{font-size:21px;line-height:1.25;margin:7px 0 5px;color:#302b2e}
+.ep-en-today p{margin:0;color:#8a8085;font-size:10px;line-height:1.6}
+.ep-en-progress{height:7px;border-radius:999px;background:#eee7eb;overflow:hidden;margin:14px 0 8px}
+.ep-en-progress>i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#d891ab,#9db9df)}
+.ep-en-primary{width:100%;border:0;border-radius:15px;padding:13px 15px;background:#d98eaa;color:#fff;font-weight:800;font-size:12px;margin-top:12px}
+.ep-en-secondary{border:1px solid #eadde3;background:#fff;color:#6d6268;border-radius:13px;padding:10px 12px;font-size:10px;font-weight:700}
+.ep-en-section-title{display:flex;justify-content:space-between;align-items:end;padding:0 3px 7px}
+.ep-en-section-title b{font-size:13px}.ep-en-section-title span{font-size:8px;color:#999097}
+.ep-en-menu{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.ep-en-menu button{min-height:88px;text-align:left;border:0;border-radius:18px;background:#fff;padding:13px;color:#332d30;box-shadow:0 6px 18px rgba(50,43,46,.04)}
+.ep-en-menu button b{display:block;font-size:12px;margin:7px 0 4px}.ep-en-menu button span{display:block;color:#9b9296;font-size:8px;line-height:1.4}.ep-en-menu button i{font-style:normal;font-size:17px}
+.ep-en-minirow{display:flex;gap:8px;overflow:auto;padding-bottom:2px}.ep-en-minirow button{white-space:nowrap;border:1px solid #eadfe4;background:#fff;border-radius:999px;padding:8px 11px;font-size:9px;color:#6b6065}
+.ep-en-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.ep-en-stat{background:#fff;border-radius:16px;padding:12px;text-align:center}.ep-en-stat b{display:block;font-size:17px}.ep-en-stat span{font-size:8px;color:#9a9095}
+#epEnglishScreen{z-index:620}
+.ep-en-screen-body{padding:14px 18px 42px;overflow:auto}
+.ep-en-topbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.ep-en-step{font-size:9px;color:#9a8c93}.ep-en-step strong{color:#b46784}
+.ep-en-player{background:linear-gradient(150deg,#fff7fa,#f3f7ff);border-radius:20px;padding:15px;margin:10px 0 12px}
+.ep-en-player-main{display:flex;align-items:center;justify-content:center;gap:12px}.ep-en-player-main button{border:0;background:#fff;border-radius:50%;width:42px;height:42px;box-shadow:0 5px 16px rgba(55,47,51,.08);font-size:14px}.ep-en-player-main button.play{width:52px;height:52px;background:#d88faa;color:#fff;font-size:18px}
+.ep-en-range{width:100%;accent-color:#d88faa;margin:12px 0 4px}.ep-en-time{display:flex;justify-content:space-between;font-size:8px;color:#958a90}
+.ep-en-speed{display:flex;gap:5px;justify-content:center;margin-top:9px;flex-wrap:wrap}.ep-en-speed button,.ep-en-loop-btn{border:1px solid #eadde3;background:#fff;border-radius:999px;padding:6px 9px;font-size:8px;color:#71656b}.ep-en-speed button.on,.ep-en-loop-btn.on{background:#f6e4eb;color:#a65d79;border-color:#e6bfd0}
+.ep-en-blind{padding:24px 14px;text-align:center;color:#766d72}.ep-en-blind b{display:block;font-size:15px;margin-bottom:7px}.ep-en-blind span{font-size:9px;color:#9d9499;line-height:1.6}
+.ep-en-q{display:grid;gap:9px}.ep-en-q label{font-size:10px;font-weight:800}.ep-en-q textarea,.ep-en-retell textarea,.ep-en-sentence-input,.ep-en-vocab-sheet input,.ep-en-vocab-sheet textarea{width:100%;box-sizing:border-box;border:1px solid #eadfe4;border-radius:13px;background:#fff;padding:11px;font-size:11px;outline:none}.ep-en-q textarea,.ep-en-retell textarea,.ep-en-vocab-sheet textarea{min-height:80px;resize:vertical}
+.ep-en-transcript-tools{display:flex;gap:6px;overflow:auto;margin:9px 0}.ep-en-transcript-tools button{white-space:nowrap;border:1px solid #eadfe4;background:#fff;border-radius:999px;padding:7px 10px;font-size:8px;color:#746970}.ep-en-transcript-tools button.on{background:#f7e9ef;color:#aa6380}
+.ep-en-transcript{display:grid;gap:8px;max-height:48vh;overflow:auto;padding-right:2px;scroll-behavior:smooth}.ep-en-line{border:1px solid #eee5e9;background:rgba(255,255,255,.92);border-radius:15px;padding:11px 12px;transition:.18s}.ep-en-line.active{border-color:#dfb4c5;background:#fff4f8;box-shadow:0 5px 14px rgba(190,118,148,.08)}.ep-en-line .en{font-size:11px;line-height:1.55;color:#302c2e}.ep-en-line .zh{font-size:9px;line-height:1.5;color:#948b90;margin-top:5px}.ep-en-line .word{cursor:pointer;border-bottom:1px dotted rgba(177,96,130,.35)}
+.ep-en-stage-note{font-size:9px;color:#8f858a;line-height:1.7;background:#f9f6f7;border-radius:13px;padding:10px 12px;margin:8px 0}
+.ep-en-actions{display:flex;gap:8px;margin-top:13px}.ep-en-actions button{flex:1;border:0;border-radius:14px;padding:11px;font-size:10px;font-weight:800}.ep-en-actions .prev{background:#f1edef;color:#746a6f}.ep-en-actions .next{background:#d98eaa;color:white}
+.ep-en-course-list{display:grid;gap:8px}.ep-en-course{border:0;background:#fff;border-radius:16px;padding:12px;text-align:left;display:flex;align-items:center;gap:11px}.ep-en-course em{font-style:normal;width:36px;height:36px;border-radius:13px;background:#f5edf1;display:grid;place-items:center;color:#a2607a;font-weight:800}.ep-en-course div{min-width:0;flex:1}.ep-en-course b{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ep-en-course span{font-size:8px;color:#9b9296}.ep-en-course.done{opacity:.68}
+.ep-en-keywords{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}.ep-en-keywords span{background:#f4eef1;border-radius:999px;padding:7px 10px;font-size:9px;color:#7b6e74}
+.ep-en-record{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.ep-en-record button{border:1px solid #eadfe4;background:#fff;border-radius:12px;padding:9px 11px;font-size:9px}.ep-en-record audio{width:100%;margin-top:8px}
+.ep-en-sentence-answer{background:#fff;border-radius:15px;padding:12px;margin-top:10px}.ep-en-sentence-answer b{font-size:12px}.ep-en-sentence-answer p{font-size:9px;color:#777;line-height:1.5}.ep-en-rating{display:flex;gap:7px;margin-top:9px}.ep-en-rating button{flex:1;border:1px solid #eadfe4;background:#fff;border-radius:12px;padding:9px 5px;font-size:8px}.ep-en-rating button.bad{background:#fff1f3}.ep-en-rating button.mid{background:#fff8ea}.ep-en-rating button.good{background:#eef8f2}
+.ep-en-list-empty{text-align:center;color:#9a9095;padding:28px 8px;font-size:10px;line-height:1.7}
+.ep-en-vocab-list,.ep-en-wrong-list{display:grid;gap:8px}.ep-en-item{background:#fff;border-radius:15px;padding:12px}.ep-en-item b{font-size:11px}.ep-en-item p{font-size:9px;color:#82777d;margin:5px 0;line-height:1.45}.ep-en-item small{font-size:7px;color:#aaa}.ep-en-item-actions{display:flex;gap:6px;margin-top:8px}.ep-en-item-actions button{border:1px solid #eadfe4;background:#fff;border-radius:10px;padding:7px 9px;font-size:8px}
+.ep-en-vocab-sheet{position:fixed;inset:0;z-index:99999;display:none}.ep-en-vocab-sheet.show{display:block}.ep-en-vocab-backdrop{position:absolute;inset:0;background:rgba(25,20,23,.38)}.ep-en-vocab-panel{position:absolute;left:0;right:0;bottom:0;background:#fffafc;border-radius:24px 24px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom));display:grid;gap:8px}.ep-en-vocab-panel h3{margin:0 0 4px;font-size:15px}
+.ep-en-license{font-size:7px;color:#aaa;line-height:1.5;margin-top:12px;padding:0 4px}
+@media(max-width:380px){.ep-en-menu{grid-template-columns:1fr}.ep-en-player-main{gap:8px}}
+</style>
+
+<!--
+Third-party notice (embedded for single-file mobile deployment):
+ChangeLife Listening material: https://github.com/whyfail/changelife-frontend-listening
+Copyright (c) 2026 whyfail. Licensed under the MIT License.
+Permission notice preserved in source repository and this build attribution.
+Ephemeris sentence demo data in this build is original test data released as CC0-1.0.
+No Common Voice clips are redistributed in this build.
+-->
+
+<script id="ephem-english-mobile-bundle">
+(()=>{
+'use strict';
+const EN_VERSION='1.0.1-mobile';
+const STORE_KEY='ephemerisEnglishProgress';
+const CHANGE_BASE='https://raw.githubusercontent.com/whyfail/changelife-frontend-listening/main/';
+const $id=id=>document.getElementById(id);
+const escHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const todayKey=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
+const ydayKey=()=>{const d=new Date();d.setDate(d.getDate()-1);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
+function freshProgress(){return {version:1,lastStudyDate:'',streak:0,totalListeningMinutes:0,completedEpisodes:{},episodeState:{},sentencePracticeHistory:[],wrongListeningSentences:[],savedVocabulary:[],retellHistory:[],daily:{},lastEpisodeId:''}}
+function getProgress(){try{const x=JSON.parse(localStorage.getItem(STORE_KEY)||'null');return {...freshProgress(),...(x&&typeof x==='object'?x:{}),version:1}}catch(_){return freshProgress()}}
+function saveProgress(p){localStorage.setItem(STORE_KEY,JSON.stringify(p));window.dispatchEvent(new CustomEvent('ephemeris:english-progress',{detail:p}))}
+let P=getProgress();
+function touchStudy(){const t=todayKey();if(P.lastStudyDate!==t){P.streak=P.lastStudyDate===ydayKey()?Math.max(1,(P.streak||0)+1):1;P.lastStudyDate=t}saveProgress(P)}
+
+// ---------- Adapters ----------
+const LESSON_META=[
+['01-small-steps-every-day','Small Steps Every Day','A2',['daily']],
+['02-a-quiet-morning','A Quiet Morning','A2',['daily']],
+['03-the-power-of-listening','The Power of Listening','A2',['daily','listening']],
+['04-the-power-of-kind-words','The Power of Kind Words','A2',['daily','customer-service']],
+['05-when-you-feel-nervous','When You Feel Nervous','A2',['daily']],
+['06-a-walk-after-dinner','A Walk After Dinner','A2',['daily']],
+['07-a-break-from-your-phone','A Break from Your Phone','A2',['daily']],
+['08-making-a-new-friend','Making a New Friend','A2',['daily']],
+['09-a-peaceful-night','A Peaceful Night','A2',['daily']],
+['10-believe-in-yourself','Believe in Yourself','A2',['daily','interview']],
+['11-a-cup-of-water','A Cup of Water','A1',['daily']],
+['12-a-quiet-evening-walk','A Quiet Evening Walk','A1',['daily']],
+['13-connected-speech-practice','Connected Speech Practice','A1–A2',['connected-speech','accent']]
+];
+const manifest=LESSON_META.map((x,i)=>({
+ id:x[0],title:x[1],level:x[2],topic:x[3][0]||'daily',duration:i===12?338.745:120,
+ audio:CHANGE_BASE+x[0]+'/audio.mp3',tags:x[3],source:'whyfail/changelife-frontend-listening',
+ license:'MIT',sourceUrl:'https://github.com/whyfail/changelife-frontend-listening',
+ questions:i===12?['你听到的连读/弱读训练主要在练什么？','写下一个你最想模仿的自然口语形式。']:[`用一句话概括《${x[1]}》主要讲了什么？`,'写下一个你听清楚的具体细节。']
+}));
+let changeDataPromise=null;
+function loadRemoteScript(src){return new Promise((res,rej)=>{const old=[...document.scripts].find(s=>s.src===src);if(old){if(window.CHANGELIFE_LESSONS)return res();old.addEventListener('load',res,{once:true});old.addEventListener('error',rej,{once:true});return}const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
+async function loadChangeLife12(){if(changeDataPromise)return changeDataPromise;changeDataPromise=(async()=>{await loadRemoteScript(CHANGE_BASE+'content-data.js');return Array.isArray(window.CHANGELIFE_LESSONS)?window.CHANGELIFE_LESSONS:[]})();return changeDataPromise}
+const ChangeLifeAdapter={
+ async list(){return manifest},
+ async get(id){
+  const meta=manifest.find(x=>x.id===id);if(!meta)throw new Error('课程不存在');
+  if(id==='13-connected-speech-practice'){
+   const r=await fetch(CHANGE_BASE+'13-connected-speech-practice/dialogue.json',{cache:'force-cache'});if(!r.ok)throw new Error('连读课程文本加载失败');const j=await r.json();
+   return {...meta,englishTranscript:(j.dialogue||[]).map(x=>x.english).join(' '),chineseTranscript:(j.dialogue||[]).map(x=>x.chinese).join(' '),segments:j.dialogue||[]}
+  }
+  const list=await loadChangeLife12();const l=list.find(x=>x.id===id);if(!l)throw new Error('课程文本加载失败');
+  return {...meta,level:String(l.level||meta.level).replace(/CEFR\s*/i,''),englishTranscript:(l.dialogue||[]).map(x=>x.english).join(' '),chineseTranscript:(l.dialogue||[]).map(x=>x.chinese).join(' '),segments:l.dialogue||[]}
+ }
+};
+window.ChangeLifeAdapter=ChangeLifeAdapter;
+
+// Local legal demo data using Tatoeba-compatible schema. No unverified third-party audio is bundled.
+const SENTENCES=[
+ {id:'demo-1',sentence:'Could you say that again, please?',translation:'你可以再说一遍吗？',audio:null,speaker:null,attribution:'Ephemeris original demo',license:'CC0-1.0',sourceUrl:null,difficulty:'A2',tags:['daily','customer-service']},
+ {id:'demo-2',sentence:'The flight has been delayed by twenty minutes.',translation:'航班延误了二十分钟。',audio:null,speaker:null,attribution:'Ephemeris original demo',license:'CC0-1.0',sourceUrl:null,difficulty:'A2',tags:['travel','airport']},
+ {id:'demo-3',sentence:'Breakfast is served on the second floor.',translation:'早餐在二楼供应。',audio:null,speaker:null,attribution:'Ephemeris original demo',license:'CC0-1.0',sourceUrl:null,difficulty:'A2',tags:['hotel','travel']},
+ {id:'demo-4',sentence:'I understand why you are frustrated.',translation:'我理解你为什么感到沮丧。',audio:null,speaker:null,attribution:'Ephemeris original demo',license:'CC0-1.0',sourceUrl:null,difficulty:'B1',tags:['customer-service']},
+ {id:'demo-5',sentence:'Let me check what I can do for you.',translation:'让我看看现在能为你做什么。',audio:null,speaker:null,attribution:'Ephemeris original demo',license:'CC0-1.0',sourceUrl:null,difficulty:'A2',tags:['customer-service','cabin-crew']},
+ {id:'demo-6',sentence:'Just to make sure, did you say gate sixteen?',translation:'确认一下，你刚才说的是16号登机口吗？',audio:null,speaker:null,attribution:'Ephemeris original demo',license:'CC0-1.0',sourceUrl:null,difficulty:'B1',tags:['airport','travel']}
+];
+const TatoebaAdapter={async list(){return SENTENCES},async get(id){return SENTENCES.find(x=>x.id===id)||null}};window.TatoebaAdapter=TatoebaAdapter;
+const CommonVoiceAdapter={async listBatches(){return []},async list(){return []}};window.CommonVoiceAdapter=CommonVoiceAdapter;
+
+// ---------- Unified player ----------
+class EnglishAudioPlayer{
+ constructor(audio){this.audio=audio;this.segments=[];this.loopSentence=false;this.loopAll=false;this.active=-1;this.onSegment=null;this._bind()}
+ _bind(){this.audio.addEventListener('timeupdate',()=>{this._sync();this.render?.()});this.audio.addEventListener('loadedmetadata',()=>this.render?.());this.audio.addEventListener('play',()=>this.render?.());this.audio.addEventListener('pause',()=>this.render?.());this.audio.addEventListener('ended',()=>{if(this.loopAll){this.audio.currentTime=0;this.audio.play().catch(()=>{})}this.render?.()})}
+ set(src,segments=[]){if(this.audio.src!==src)this.audio.src=src;this.segments=segments;this.active=-1;this.audio.preload='metadata'}
+ playPause(){this.audio.paused?this.audio.play().catch(()=>toastSafe('音频暂时播放失败')):this.audio.pause()}
+ seek(sec){this.audio.currentTime=Math.max(0,Math.min(Number.isFinite(this.audio.duration)?this.audio.duration:1e9,(this.audio.currentTime||0)+sec))}
+ jump(t){this.audio.currentTime=Math.max(0,+t||0);this.audio.play().catch(()=>{})}
+ rate(v){this.audio.playbackRate=+v||1}
+ _sync(){const t=this.audio.currentTime;const i=this.segments.findIndex(s=>t>=Number(s.start||0)&&t<Number(s.end||Infinity));if(i!==this.active){this.active=i;this.onSegment?.(i)}if(this.loopSentence&&i>=0){const s=this.segments[i];if(t>=Number(s.end||Infinity)-.05){this.audio.currentTime=Number(s.start||0);this.audio.play().catch(()=>{})}}}
+}
+window.EnglishAudioPlayer=EnglishAudioPlayer;
+
+function toastSafe(s){try{if(typeof toast==='function')toast(s);else console.log(s)}catch(_){console.log(s)}}
+function ensureScreen(){
+ if($id('epEnglishScreen'))return $id('epEnglishScreen');
+ const el=document.createElement('section');el.className='subscreen';el.id='epEnglishScreen';el.innerHTML=`<header class="screen-head"><button class="back" id="epEnBack">‹</button><div class="screen-title"><b id="epEnTitle">今日英语</b><span id="epEnSub">听懂 · 跟读 · 复述</span></div><button class="head-action" id="epEnHomeBtn">⌂</button></header><div class="screen-body ep-en-screen-body" id="epEnBody"></div>`;
+ document.body.appendChild(el);$id('epEnBack').onclick=()=>el.classList.remove('show');$id('epEnHomeBtn').onclick=()=>renderEnglishPracticeHome();return el
+}
+function openEpScreen(title,sub,html){const s=ensureScreen();$id('epEnTitle').textContent=title;$id('epEnSub').textContent=sub||'';$id('epEnBody').innerHTML=html;s.classList.add('show');return s}
+function homeBody(){return document.querySelector('#practiceScreen .eng-lab-body')}
+function currentDailyId(){const k=todayKey();P.daily=P.daily||{};if(!P.daily[k]){const n=[...k].reduce((a,c)=>a+c.charCodeAt(0),0)%manifest.length;P.daily[k]={episodeId:manifest[n].id,started:false,completed:false};saveProgress(P)}return P.daily[k].episodeId}
+function episodeProgress(id){const s=P.episodeState?.[id]||{};return Math.max(0,Math.min(100,Math.round(((s.step||0)/8)*100)))}
+function stats(){const month=todayKey().slice(0,7),weekAgo=Date.now()-7*864e5;let week=0;Object.values(P.completedEpisodes||{}).forEach(x=>{if(new Date(x.date||0).getTime()>=weekAgo)week++});let monthCount=0;Object.values(P.completedEpisodes||{}).forEach(x=>{if(String(x.date||'').startsWith(month))monthCount++});return {week,monthCount}}
+function renderEnglishPracticeHome(){
+ const body=homeBody();if(!body)return;P=getProgress();const eid=currentDailyId();const ep=manifest.find(x=>x.id===eid)||manifest[0];const done=!!P.completedEpisodes[eid]?.date?.startsWith(todayKey());const pc=done?100:episodeProgress(eid);const st=stats();
+ body.innerHTML=`<div class="ep-en-home">
+  <section class="ep-en-card ep-en-today"><div class="ep-en-kicker">TODAY · ENGLISH</div><h2>${escHtml(ep.title)}</h2><p>${escHtml(ep.level)} · 约 20 分钟 · ${done?'今天已经完成':'按固定流程一步一步练'}</p><div class="ep-en-progress"><i style="width:${pc}%"></i></div><p>${done?'今日英语 ✓':`当前进度 ${pc}%`}</p><button class="ep-en-primary" id="epStartToday">${done?'再练一次':'开始今日训练'}</button></section>
+  <div><div class="ep-en-section-title"><div><b>学习入口</b><span>主线保持很少</span></div></div><div class="ep-en-menu">
+   <button id="epCourses"><i>◖</i><b>听力课程</b><span>13 期 · A1–A2 + 连读弱读</span></button>
+   <button id="epSentence"><i>⌁</i><b>短句听辨</b><span>听写 · 对比 · 自动进错题</span></button>
+   <button id="epVoice"><i>◉</i><b>真人声音</b><span>Common Voice 精选批次接口</span></button>
+   <button id="epReview"><i>✦</i><b>错题 / 生词</b><span>${P.wrongListeningSentences.length} 错句 · ${P.savedVocabulary.length} 生词</span></button>
+  </div></div>
+  <div><div class="ep-en-section-title"><div><b>更多</b><span>需要时再打开</span></div></div><div class="ep-en-minirow"><button id="epResume">继续上次学习</button><button id="epEk">EK 专项</button><button id="epCETWords">CET 单词</button><button id="epCETPapers">CET-4 真题</button><button id="epRecords">学习记录</button></div></div>
+  <section class="ep-en-stats"><div class="ep-en-stat"><b>${P.streak||0}</b><span>连续天数</span></div><div class="ep-en-stat"><b>${st.week}</b><span>本周完成</span></div><div class="ep-en-stat"><b>${Math.round(P.totalListeningMinutes||0)}</b><span>听力分钟</span></div></section>
+  <div class="ep-en-license">ChangeLife 课程：whyfail/changelife-frontend-listening · MIT License。音频按需从其公开 GitHub 仓库加载。短句测试数据为 Ephemeris 原创 CC0 示例；未冒充 Tatoeba 真人音频。</div>
+ </div>`;
+ $id('epStartToday').onclick=()=>startEpisode(eid);$id('epCourses').onclick=()=>courseList();$id('epSentence').onclick=()=>sentencePractice();$id('epVoice').onclick=()=>commonVoicePage();$id('epReview').onclick=()=>reviewPage();$id('epRecords').onclick=()=>recordsPage();$id('epEk').onclick=()=>courseList(true);$id('epResume').onclick=()=>startEpisode(P.lastEpisodeId||eid);$id('epCETWords').onclick=()=>{try{openScreen('words')}catch(_){toastSafe('CET 小屋入口暂时打不开')}};$id('epCETPapers').onclick=()=>{try{renderCetLibrary('CET4');$id('cetLibraryScreen')?.classList.add('show')}catch(_){toastSafe('真题入口暂时打不开')}};
+}
+window.renderEnglishPracticeHome=renderEnglishPracticeHome;
+
+function courseList(ek=false){const tags=['travel','airport','hotel','customer-service','cabin-crew','interview','connected-speech','accent'];const list=ek?manifest.filter(x=>x.tags.some(t=>tags.includes(t))):manifest;openEpScreen(ek?'EK 专项':'听力课程',ek?'只显示现有相关素材，不虚构内容':'13 期 ChangeLife 课程',`<div class="ep-en-course-list">${list.map((x,i)=>`<button class="ep-en-course ${P.completedEpisodes[x.id]?'done':''}" data-ep-course="${x.id}"><em>${String(manifest.indexOf(x)+1).padStart(2,'0')}</em><div><b>${escHtml(x.title)}</b><span>${escHtml(x.level)} · ${Math.round(x.duration/60)} 分钟音频 ${P.completedEpisodes[x.id]?'· 已完成':''}</span></div><span>›</span></button>`).join('')}</div><div class="ep-en-license">来源：whyfail/changelife-frontend-listening · MIT License</div>`);document.querySelectorAll('[data-ep-course]').forEach(b=>b.onclick=()=>startEpisode(b.dataset.epCourse))}
+
+let SESSION=null,PLAYER=null,RAF=0;
+async function startEpisode(id){
+ const meta=manifest.find(x=>x.id===id)||manifest[0];P.lastEpisodeId=meta.id;P.episodeState=P.episodeState||{};const prev=P.episodeState[meta.id]||{};P.episodeState[meta.id]={...prev,step:Math.max(0,Math.min(8,prev.step||0)),listenCount:prev.listenCount||0,shadowed:!!prev.shadowed,retold:!!prev.retold};saveProgress(P);
+ openEpScreen(meta.title,'正在载入课程…','<div class="ep-en-list-empty">正在加载字幕与音频时间轴…</div>');
+ try{const lesson=await ChangeLifeAdapter.get(meta.id);SESSION={lesson,state:P.episodeState[meta.id],caption:'hidden',followIndex:0,recordUrl:null};renderLesson()}catch(e){$id('epEnBody').innerHTML=`<div class="ep-en-list-empty">课程加载失败。<br>${escHtml(e.message||'请检查网络')}<br><button class="ep-en-secondary" id="epRetryLesson">重试</button></div>`;$id('epRetryLesson').onclick=()=>startEpisode(meta.id)}
+}
+function fmt(t){t=Math.max(0,Math.floor(+t||0));return `${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`}
+function playerHTML(){return `<div class="ep-en-player"><audio id="epAudio" playsinline preload="metadata"></audio><div class="ep-en-player-main"><button id="epBack5">−5</button><button class="play" id="epPlay">▶</button><button id="epForward5">+5</button></div><input class="ep-en-range" id="epSeek" type="range" min="0" max="1000" value="0"><div class="ep-en-time"><span id="epNow">0:00</span><span id="epDur">${fmt(SESSION.lesson.duration)}</span></div><div class="ep-en-speed">${[.75,1,1.25,1.5].map(v=>`<button data-rate="${v}" class="${v===1?'on':''}">${v}×</button>`).join('')}<button class="ep-en-loop-btn" id="epLoopSentence">单句循环</button><button class="ep-en-loop-btn" id="epLoopAll">全文循环</button></div></div>`}
+function currentStep(){return Math.max(0,Math.min(8,+SESSION.state.step||0))}
+function stepTitle(n){return ['第一次盲听','回答大意','第二次听','查看英文字幕','查看中英字幕','标记生词','逐句跟读','关闭字幕复述','完成 · 简单复盘'][n]||'今日英语'}
+function transcriptHTML(mode='en'){return `<div class="ep-en-transcript" id="epTranscript">${SESSION.lesson.segments.map((s,i)=>`<div class="ep-en-line" data-seg="${i}"><div class="en">${wordify(s.english||'')}</div>${mode==='bi'?`<div class="zh">${escHtml(s.chinese||'')}</div>`:''}</div>`).join('')}</div>`}
+function wordify(text){return String(text||'').split(/(\b[A-Za-z][A-Za-z’'-]*\b)/g).map((p,i)=>/^[A-Za-z][A-Za-z’'-]*$/.test(p)?`<span class="word" data-word="${escHtml(p.replace(/[’]/g,"'"))}">${escHtml(p)}</span>`:escHtml(p)).join('')}
+function keywords(){const stop=new Set('the a an and or but to of in on at is are was were i you he she it we they my your this that for with from as be been being have has had do does did can could will would should not just very more when then now into about because after before'.split(' '));const words=(SESSION.lesson.englishTranscript||'').toLowerCase().match(/[a-z]{4,}/g)||[];const count={};words.forEach(w=>{if(!stop.has(w))count[w]=(count[w]||0)+1});return Object.entries(count).sort((a,b)=>b[1]-a[1]).slice(0,5).map(x=>x[0])}
+function renderLesson(){
+ const n=currentStep();$id('epEnTitle').textContent=SESSION.lesson.title;$id('epEnSub').textContent=`${n+1}/9 · ${stepTitle(n)}`;
+ let content='';
+ if(n===0)content=`${playerHTML()}<div class="ep-en-blind"><b>第一次只听</b><span>默认隐藏全文字幕。尽量抓住人物、地点、动作和大意，不要求每个词都听懂。</span></div>`;
+ if(n===1){const a=SESSION.state.gist||['',''];content=`<div class="ep-en-q"><label>${escHtml(SESSION.lesson.questions[0])}</label><textarea id="epG1">${escHtml(a[0]||'')}</textarea><label>${escHtml(SESSION.lesson.questions[1])}</label><textarea id="epG2">${escHtml(a[1]||'')}</textarea></div>`}
+ if(n===2)content=`${playerHTML()}<div class="ep-en-stage-note">再听一次。现在仍不看字幕，重点确认第一次没抓住的部分。</div>`;
+ if(n===3)content=`${playerHTML()}<div class="ep-en-transcript-tools"><button class="on">英文字幕</button><button id="epHideCap">隐藏字幕</button></div>${transcriptHTML('en')}`;
+ if(n===4)content=`${playerHTML()}<div class="ep-en-transcript-tools"><button>英文</button><button class="on">中英</button><button id="epHideCap">隐藏</button></div>${transcriptHTML('bi')}`;
+ if(n===5)content=`<div class="ep-en-stage-note">点字幕里的单词加入本期生词。每一期最多收 5 个，避免无限收藏。</div>${transcriptHTML('bi')}<div class="ep-en-stage-note">本期已收：${episodeVocabCount(SESSION.lesson.id)} / 5</div>`;
+ if(n===6){const i=Math.max(0,Math.min(SESSION.followIndex,SESSION.lesson.segments.length-1)),s=SESSION.lesson.segments[i];content=`${playerHTML()}<div class="ep-en-stage-note">播放一句 → 暂停 → 自己跟读。录音只保留在当前页面，不上传服务器。</div><div class="ep-en-item"><b>${i+1} / ${SESSION.lesson.segments.length}</b><p>${escHtml(s?.english||'')}</p><small>${escHtml(s?.chinese||'')}</small><div class="ep-en-item-actions"><button id="epPlaySentence">播放这一句</button><button id="epPrevSentence">上一句</button><button id="epNextSentence">下一句</button></div></div><div class="ep-en-record"><button id="epRecordBtn">🎙 开始录音</button><button id="epStopRecord" disabled>停止</button><audio id="epRecordPreview" controls playsinline style="display:none"></audio></div>`}
+ if(n===7){const old=SESSION.state.retellText||'';content=`<div class="ep-en-retell"><div class="ep-en-blind"><b>关闭字幕复述</b><span>看关键词，用 30–60 秒英语讲出你记得的内容。</span></div><div class="ep-en-keywords">${keywords().map(w=>`<span>${escHtml(w)}</span>`).join('')}</div><textarea id="epRetell" placeholder="也可以把你的英语复述写下来…">${escHtml(old)}</textarea></div>`}
+ if(n===8)content=`<div class="ep-en-card"><div class="ep-en-kicker">REVIEW</div><h2 style="margin:7px 0 8px;font-size:18px">今天这期到这里。</h2><p style="font-size:10px;line-height:1.7;color:#81777c">听了 ${SESSION.state.listenCount||0} 遍 · ${SESSION.state.shadowed?'完成跟读':'未标记跟读'} · ${SESSION.state.retold?'完成复述':'未标记复述'} · 收藏 ${episodeVocabCount(SESSION.lesson.id)} 个词</p><textarea id="epReviewText" style="width:100%;box-sizing:border-box;min-height:85px;border:1px solid #eadfe4;border-radius:13px;padding:11px" placeholder="一句话复盘：今天最卡在哪里？">${escHtml(SESSION.state.review||'')}</textarea><button class="ep-en-primary" id="epFinishEpisode">完成今日英语 ✓</button></div>`;
+ $id('epEnBody').innerHTML=`<div class="ep-en-topbar"><div class="ep-en-step"><strong>${n+1}</strong> / 9 · ${stepTitle(n)}</div><button class="ep-en-secondary" id="epCourseListBtn">换课程</button></div>${content}${n<8?`<div class="ep-en-actions"><button class="prev" id="epPrevStep" ${n===0?'disabled':''}>上一步</button><button class="next" id="epNextStep">${n===7?'进入复盘':'下一步'}</button></div>`:''}<div class="ep-en-license">${escHtml(SESSION.lesson.source)} · ${escHtml(SESSION.lesson.license)} · 音频按需加载</div>`;
+ bindLesson(n)
+}
+function episodeVocabCount(id){return P.savedVocabulary.filter(x=>x.episodeId===id).length}
+function saveSession(){P.episodeState[SESSION.lesson.id]=SESSION.state;saveProgress(P)}
+function bindPlayer(){const a=$id('epAudio');if(!a)return;PLAYER=new EnglishAudioPlayer(a);PLAYER.set(SESSION.lesson.audio,SESSION.lesson.segments);PLAYER.render=()=>{$id('epPlay')&&($id('epPlay').textContent=a.paused?'▶':'Ⅱ');if($id('epSeek'))$id('epSeek').value=Number.isFinite(a.duration)&&a.duration?String(Math.round((a.currentTime/a.duration)*1000)):'0';$id('epNow')&&($id('epNow').textContent=fmt(a.currentTime));$id('epDur')&&($id('epDur').textContent=fmt(a.duration||SESSION.lesson.duration))};PLAYER.onSegment=i=>{document.querySelectorAll('.ep-en-line').forEach((el,j)=>el.classList.toggle('active',j===i));const active=document.querySelector(`.ep-en-line[data-seg="${i}"]`);active?.scrollIntoView({block:'nearest',behavior:'smooth'})};$id('epPlay').onclick=()=>{if(a.paused){SESSION.state.listenCount=(SESSION.state.listenCount||0)+1;saveSession()}PLAYER.playPause()};$id('epBack5').onclick=()=>PLAYER.seek(-5);$id('epForward5').onclick=()=>PLAYER.seek(5);$id('epSeek').oninput=e=>{if(Number.isFinite(a.duration))a.currentTime=(+e.target.value/1000)*a.duration};document.querySelectorAll('[data-rate]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-rate]').forEach(x=>x.classList.remove('on'));b.classList.add('on');PLAYER.rate(b.dataset.rate)});$id('epLoopSentence').onclick=()=>{PLAYER.loopSentence=!PLAYER.loopSentence;$id('epLoopSentence').classList.toggle('on',PLAYER.loopSentence)};$id('epLoopAll').onclick=()=>{PLAYER.loopAll=!PLAYER.loopAll;$id('epLoopAll').classList.toggle('on',PLAYER.loopAll)}}
+function bindTranscript(){document.querySelectorAll('.ep-en-line').forEach(el=>el.onclick=e=>{const word=e.target.closest('[data-word]');if(word){openVocabSheet(word.dataset.word);e.stopPropagation();return}const i=+el.dataset.seg,seg=SESSION.lesson.segments[i];const a=$id('epAudio');if(a&&seg){a.currentTime=+seg.start||0;a.play().catch(()=>{})}})}
+let REC=null,RECCH=[];
+async function startRecord(){if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){toastSafe('当前浏览器不支持页面内录音');return}try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});RECCH=[];REC=new MediaRecorder(stream);REC.ondataavailable=e=>e.data.size&&RECCH.push(e.data);REC.onstop=()=>{const blob=new Blob(RECCH,{type:REC.mimeType||'audio/webm'});if(SESSION.recordUrl)URL.revokeObjectURL(SESSION.recordUrl);SESSION.recordUrl=URL.createObjectURL(blob);const p=$id('epRecordPreview');if(p){p.src=SESSION.recordUrl;p.style.display='block'}stream.getTracks().forEach(t=>t.stop())};REC.start();$id('epRecordBtn').disabled=true;$id('epStopRecord').disabled=false;toastSafe('开始录音了')}catch(_){toastSafe('没有拿到麦克风权限')}}
+function stopRecord(){if(REC&&REC.state!=='inactive'){REC.stop();$id('epRecordBtn').disabled=false;$id('epStopRecord').disabled=true}}
+function bindLesson(n){
+ $id('epCourseListBtn').onclick=()=>courseList();
+ if([0,2,3,4,6].includes(n))bindPlayer();if([3,4,5].includes(n))bindTranscript();if($id('epHideCap'))$id('epHideCap').onclick=()=>{document.querySelector('.ep-en-transcript')?.replaceWith(Object.assign(document.createElement('div'),{className:'ep-en-blind',innerHTML:'<b>字幕已隐藏</b><span>继续听，不偷看。</span>'}))};
+ if(n===1){['epG1','epG2'].forEach(id=>$id(id).oninput=()=>{SESSION.state.gist=[$id('epG1').value,$id('epG2').value];saveSession()})}
+ if(n===6){$id('epPlaySentence').onclick=()=>{const s=SESSION.lesson.segments[SESSION.followIndex];const a=$id('epAudio');a.currentTime=+s.start||0;a.play().catch(()=>{});const stop=()=>{if(a.currentTime>=+s.end-.03){a.pause();a.removeEventListener('timeupdate',stop)}};a.addEventListener('timeupdate',stop);SESSION.state.shadowed=true;saveSession()};$id('epPrevSentence').onclick=()=>{SESSION.followIndex=Math.max(0,SESSION.followIndex-1);renderLesson()};$id('epNextSentence').onclick=()=>{SESSION.followIndex=Math.min(SESSION.lesson.segments.length-1,SESSION.followIndex+1);SESSION.state.shadowed=true;saveSession();renderLesson()};$id('epRecordBtn').onclick=startRecord;$id('epStopRecord').onclick=stopRecord}
+ if(n===7)$id('epRetell').oninput=()=>{SESSION.state.retellText=$id('epRetell').value;SESSION.state.retold=!!SESSION.state.retellText.trim();saveSession()};
+ if(n<8){$id('epPrevStep').onclick=()=>{SESSION.state.step=Math.max(0,n-1);saveSession();renderLesson()};$id('epNextStep').onclick=()=>{if(n===0&&!(SESSION.state.listenCount>0)){toastSafe('先完整听一遍，再进入下一步');return}SESSION.state.step=Math.min(8,n+1);saveSession();renderLesson()}}
+ if(n===8)$id('epFinishEpisode').onclick=()=>{SESSION.state.review=$id('epReviewText').value.trim();SESSION.state.step=8;saveSession();const d=todayKey();P.completedEpisodes[SESSION.lesson.id]={date:d,status:'completed',listenCount:SESSION.state.listenCount||0,shadowed:!!SESSION.state.shadowed,retold:!!SESSION.state.retold,vocabCount:episodeVocabCount(SESSION.lesson.id)};P.retellHistory=P.retellHistory||[];if(SESSION.state.retellText?.trim())P.retellHistory.push({date:d,episodeId:SESSION.lesson.id,text:SESSION.state.retellText.trim()});P.totalListeningMinutes=Number(P.totalListeningMinutes||0)+(SESSION.lesson.duration/60)*Math.max(1,SESSION.state.listenCount||1);if(P.daily?.[d])P.daily[d].completed=true;touchStudy();saveProgress(P);toastSafe('今日英语 ✓');ensureScreen().classList.remove('show');renderEnglishPracticeHome()}
+}
+
+// ---------- Vocabulary sheet ----------
+function ensureVocabSheet(){if($id('epVocabSheet'))return;const el=document.createElement('div');el.id='epVocabSheet';el.className='ep-en-vocab-sheet';el.innerHTML=`<div class="ep-en-vocab-backdrop" id="epVocabClose"></div><div class="ep-en-vocab-panel"><h3 id="epVocabWord">word</h3><input id="epVocabMeaning" placeholder="中文意思"><input id="epVocabCollocation" placeholder="常见搭配"><textarea id="epVocabSentence" placeholder="自己造句"></textarea><button class="ep-en-primary" id="epVocabSave">保存生词</button></div>`;document.body.appendChild(el);$id('epVocabClose').onclick=()=>el.classList.remove('show')}
+function openVocabSheet(word){ensureVocabSheet();if(!SESSION)return;if(episodeVocabCount(SESSION.lesson.id)>=5&&!P.savedVocabulary.some(x=>x.episodeId===SESSION.lesson.id&&x.word.toLowerCase()===word.toLowerCase())){toastSafe('这一期先记 5 个就够了');return}const old=P.savedVocabulary.find(x=>x.word.toLowerCase()===word.toLowerCase());$id('epVocabWord').textContent=word;$id('epVocabMeaning').value=old?.meaning||'';$id('epVocabCollocation').value=old?.collocation||'';$id('epVocabSentence').value=old?.example||'';$id('epVocabSheet').classList.add('show');$id('epVocabSave').onclick=()=>{const item={word,meaning:$id('epVocabMeaning').value.trim(),collocation:$id('epVocabCollocation').value.trim(),example:$id('epVocabSentence').value.trim(),episodeId:SESSION.lesson.id,date:todayKey()};const i=P.savedVocabulary.findIndex(x=>x.word.toLowerCase()===word.toLowerCase());if(i>=0)P.savedVocabulary[i]={...P.savedVocabulary[i],...item};else P.savedVocabulary.push(item);saveProgress(P);$id('epVocabSheet').classList.remove('show');toastSafe('已加入生词本')}}
+
+// ---------- Sentence listening ----------
+let SENT_INDEX=0,SENT_REVEALED=false;
+function sentencePractice(forceId=''){const list=SENTENCES;SENT_INDEX=forceId?Math.max(0,list.findIndex(x=>x.id===forceId)):Math.floor(Math.random()*list.length);SENT_REVEALED=false;renderSentence()}
+function sentenceSpeak(s,rate=1){if(!('speechSynthesis' in window)){toastSafe('设备不支持系统朗读');return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(s);u.lang='en-US';u.rate=rate;try{const voices=typeof englishSystemVoices==='function'?englishSystemVoices():speechSynthesis.getVoices();const v=voices.find(x=>/daniel|aaron|arthur|oliver|samantha/i.test(x.name))||voices.find(x=>String(x.lang).startsWith('en'));if(v)u.voice=v}catch(_){}speechSynthesis.speak(u)}
+function renderSentence(){const s=SENTENCES[SENT_INDEX];openEpScreen('短句听辨','先听，再写，再对比',`<div class="ep-en-card"><div class="ep-en-kicker">SENTENCE LISTENING · ${escHtml(s.difficulty)}</div><div class="ep-en-blind"><b>${SENT_REVEALED?'答案已打开':'句子默认隐藏'}</b><span>${SENT_REVEALED?escHtml(s.sentence):'先播放音频，把你听到的英文写出来。'}</span></div><div class="ep-en-actions"><button class="prev" id="epSentPlaySlow">0.75×</button><button class="next" id="epSentPlay">▶ 播放</button></div><input class="ep-en-sentence-input" id="epSentInput" placeholder="Type what you heard…" value="${escHtml((P.sentencePracticeHistory.at(-1)?.id===s.id&&!SENT_REVEALED)?P.sentencePracticeHistory.at(-1).draft||'':'')}">${SENT_REVEALED?`<div class="ep-en-sentence-answer"><b>${escHtml(s.sentence)}</b><p>${escHtml(s.translation)}</p><small>${escHtml(s.attribution)} · ${escHtml(s.license)}</small><div class="ep-en-rating"><button class="good" data-sent-rate="good">完全听懂</button><button class="mid" data-sent-rate="partial">部分听懂</button><button class="bad" data-sent-rate="bad">没听懂</button></div></div>`:'<button class="ep-en-primary" id="epSentReveal">查看答案</button>'}<div class="ep-en-actions"><button class="prev" id="epSentNext">换一句</button><button class="prev" id="epSentFavorite">收藏</button></div></div><div class="ep-en-license">当前测试句为 Ephemeris 原创 CC0 数据，采用 Tatoeba-compatible schema；没有冒充真人音频。</div>`);$id('epSentPlay').onclick=()=>sentenceSpeak(s.sentence,1);$id('epSentPlaySlow').onclick=()=>sentenceSpeak(s.sentence,.75);$id('epSentNext').onclick=()=>{SENT_INDEX=(SENT_INDEX+1)%SENTENCES.length;SENT_REVEALED=false;renderSentence()};$id('epSentFavorite').onclick=()=>{if(!P.savedVocabulary.some(x=>x.word===s.sentence))P.savedVocabulary.push({word:s.sentence,meaning:s.translation,collocation:'短句收藏',example:'',episodeId:'sentence:'+s.id,date:todayKey()});saveProgress(P);toastSafe('已收藏这句')};if($id('epSentReveal'))$id('epSentReveal').onclick=()=>{const draft=$id('epSentInput').value.trim();P.sentencePracticeHistory.push({date:todayKey(),id:s.id,draft,revealed:true});saveProgress(P);SENT_REVEALED=true;renderSentence()};document.querySelectorAll('[data-sent-rate]').forEach(b=>b.onclick=()=>{const rate=b.dataset.sentRate;P.sentencePracticeHistory.push({date:todayKey(),id:s.id,draft:$id('epSentInput')?.value||'',rating:rate});if(rate!=='good'&&!P.wrongListeningSentences.some(x=>x.id===s.id))P.wrongListeningSentences.push({...s,addedAt:Date.now()});if(rate==='good')P.wrongListeningSentences=P.wrongListeningSentences.filter(x=>x.id!==s.id);touchStudy();saveProgress(P);toastSafe(rate==='good'?'记下了':'已加入听力错题本');})}
+
+function commonVoicePage(){openEpScreen('真人声音','Common Voice adapter',`<div class="ep-en-card"><div class="ep-en-kicker">REAL VOICES</div><h2 style="font-size:18px;margin:7px 0">真实声音训练区已经留好接口</h2><p style="font-size:10px;line-height:1.7;color:#81777c">当前单文件部署版没有内置 Common Voice 音频批次。这里不会拿来源或口音不确定的音频冒充真人数据。以后加入经过许可核对的 20–100 条精选 batch，不需要重写页面。</p></div><div class="ep-en-list-empty">当前批次：0 条<br>架构：CommonVoiceAdapter → batch → item</div>`)}
+function reviewPage(){const wrong=P.wrongListeningSentences||[],v=P.savedVocabulary||[];openEpScreen('错题 / 生词',`${wrong.length} 错句 · ${v.length} 生词`,`<div class="ep-en-section-title"><div><b>听力错题</b><span>部分 / 没听懂自动进入</span></div></div><div class="ep-en-wrong-list">${wrong.length?wrong.map(x=>`<div class="ep-en-item"><b>${escHtml(x.sentence)}</b><p>${escHtml(x.translation)}</p><div class="ep-en-item-actions"><button data-wrong-play="${x.id}">重新听</button><button data-wrong-test="${x.id}">再次测试</button><button data-wrong-remove="${x.id}">移出错题</button></div></div>`).join(''):'<div class="ep-en-list-empty">暂时没有听力错题。</div>'}</div><div class="ep-en-section-title" style="margin-top:15px"><div><b>生词 / 收藏</b><span>本地保存</span></div></div><div class="ep-en-vocab-list">${v.length?v.slice().reverse().map((x,i)=>`<div class="ep-en-item"><b>${escHtml(x.word)}</b><p>${escHtml(x.meaning||'')}</p>${x.collocation?`<small>${escHtml(x.collocation)}</small>`:''}<div class="ep-en-item-actions"><button data-vocab-del="${v.length-1-i}">删除</button></div></div>`).join(''):'<div class="ep-en-list-empty">还没有收藏词汇。</div>'}</div>`);document.querySelectorAll('[data-wrong-play]').forEach(b=>b.onclick=()=>{const x=wrong.find(y=>y.id===b.dataset.wrongPlay);x&&sentenceSpeak(x.sentence,1)});document.querySelectorAll('[data-wrong-test]').forEach(b=>b.onclick=()=>sentencePractice(b.dataset.wrongTest));document.querySelectorAll('[data-wrong-remove]').forEach(b=>b.onclick=()=>{P.wrongListeningSentences=P.wrongListeningSentences.filter(x=>x.id!==b.dataset.wrongRemove);saveProgress(P);reviewPage()});document.querySelectorAll('[data-vocab-del]').forEach(b=>b.onclick=()=>{P.savedVocabulary.splice(+b.dataset.vocabDel,1);saveProgress(P);reviewPage()})}
+function recordsPage(){const done=Object.entries(P.completedEpisodes||{}).sort((a,b)=>String(b[1].date).localeCompare(String(a[1].date)));openEpScreen('学习记录','全部保存在这个浏览器',`<section class="ep-en-stats"><div class="ep-en-stat"><b>${P.streak||0}</b><span>连续天数</span></div><div class="ep-en-stat"><b>${done.length}</b><span>完成课程</span></div><div class="ep-en-stat"><b>${Math.round(P.totalListeningMinutes||0)}</b><span>听力分钟</span></div></section><div class="ep-en-course-list" style="margin-top:14px">${done.length?done.map(([id,x])=>{const m=manifest.find(y=>y.id===id);return `<button class="ep-en-course" data-ep-course="${id}"><em>✓</em><div><b>${escHtml(m?.title||id)}</b><span>${escHtml(x.date||'')} · 听 ${x.listenCount||0} 遍 · 生词 ${x.vocabCount||0}</span></div></button>`}).join(''):'<div class="ep-en-list-empty">完成第一期后，记录会出现在这里。</div>'}</div>`);document.querySelectorAll('[data-ep-course]').forEach(b=>b.onclick=()=>startEpisode(b.dataset.epCourse))}
+
+// Patch Practice opening without touching other apps.
+const oldOpen=window.openScreen;
+if(typeof oldOpen==='function'){
+ window.openScreen=function(id){const r=oldOpen.apply(this,arguments);if(id==='practice')setTimeout(renderEnglishPracticeHome,0);return r}
+}
+// If old bindings call the symbol directly, overwrite global property as well.
+window.__ephemerisEnglishUpgrade={version:EN_VERSION,appVersion:'0.14.1',storage:STORE_KEY,mode:'single-file-mobile'};
+
+// API model UX sanity patch: make status/button behavior explicit in this build.
+setTimeout(()=>{
+ try{
+  const ep=$id('apiEndpoint');if(ep&&!ep.placeholder.includes('自动补'))ep.placeholder='API Base URL，例如 https://.../v1（自动补 /chat/completions）';
+  const model=$id('apiModel');if(model)model.placeholder='点这里选择已拉取模型，或手动输入';
+ }catch(_){ }
+},0);
+
+// render if Practice is already visible
+setTimeout(()=>{try{if($id('practiceScreen')?.classList.contains('show'))renderEnglishPracticeHome()}catch(_){}},200);
+})();
+</script>
+
 </body>
 </html>
